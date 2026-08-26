@@ -1,0 +1,874 @@
+/* ==========================================================================
+   ARCANUM LIGHT · PORTAL DE PROVEEDORES KPS
+   REF / ARC-DS-2026-PP-001
+   Derivado del sistema madre Arcanum. Modo Light — técnico y operativo.
+   Principio rector: si no aporta jerarquía o información, no va.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@200;300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+/* --------------------------------------------------------------------------
+   01 · TOKENS
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Superficies */
+  --ar-bg: #FFFFFF;
+  --ar-surface-2: #FAFAF9;
+  --ar-surface-3: #F4F4F1;
+  --ar-canvas: #D9D9D5;
+
+  /* Tinta */
+  --ar-ink: #15171C;
+  --ar-ink-2: #5A616C;
+  --ar-ink-3: #99A0AB;
+  --ar-on-accent: #FFFFFF;
+
+  /* Líneas — hairline siempre */
+  --ar-line-soft: rgba(10, 12, 18, 0.06);
+  --ar-line: rgba(10, 12, 18, 0.10);
+  --ar-line-2: rgba(10, 12, 18, 0.16);
+
+  /* Acento de inteligencia — SOLO extracción, cotejo y sugerencias del sistema */
+  --ar-ai: #5B3DF5;
+  --ar-ai-ink: #4A2FE0;
+  --ar-ai-tint: rgba(91, 61, 245, 0.08);
+  --ar-ai-tint-2: rgba(91, 61, 245, 0.14);
+
+  /* Estatus — solo dots, labels y meters. Nunca relleno de superficie */
+  --ar-ok: #1F9468;
+  --ar-warn: #B9791C;
+  --ar-danger: #CF4733;
+  --ar-ok-tint: rgba(31, 148, 104, 0.10);
+  --ar-warn-tint: rgba(185, 121, 28, 0.10);
+  --ar-danger-tint: rgba(207, 71, 51, 0.10);
+
+  /* Sombras — dos niveles muy sutiles */
+  --ar-shadow-1: 0 1px 2px rgba(10, 12, 18, 0.04);
+  --ar-shadow-2: 0 4px 16px rgba(10, 12, 18, 0.08);
+  --ar-shadow-ai: 0 2px 12px rgba(91, 61, 245, 0.10);
+
+  /* Espaciado base 4px */
+  --ar-s1: 4px;   --ar-s2: 8px;   --ar-s3: 12px;  --ar-s4: 16px;
+  --ar-s5: 20px;  --ar-s6: 24px;  --ar-s8: 32px;  --ar-s10: 40px;
+
+  /* Geometría — esquinas casi rectas */
+  --ar-r-control: 2px;
+  --ar-r-card: 3px;
+  --ar-r-container: 4px;
+  --ar-r-pill: 999px;
+
+  /* Tipografía */
+  --ar-sans: 'Hanken Grotesk', Helvetica, Arial, sans-serif;
+  --ar-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Layout */
+  --ar-sidebar: 232px;
+  --ar-topbar: 52px;
+  --ar-max: 1360px;
+}
+
+/* --------------------------------------------------------------------------
+   02 · BASE
+   -------------------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ar-bg);
+  color: var(--ar-ink);
+  font-family: var(--ar-sans);
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: 26px; line-height: 1.2; }
+h2 { font-size: 19px; line-height: 1.3; }
+h3 { font-size: 14px; line-height: 1.35; }
+
+p { margin: 0 0 var(--ar-s3); max-width: 68ch; }
+
+a { color: var(--ar-ink); text-decoration: none; border-bottom: 1px solid var(--ar-line-2); }
+a:hover { border-bottom-color: var(--ar-ink); }
+
+/* Foco visible siempre. No se elimina el outline: se rediseña. */
+:focus-visible {
+  outline: 2px solid var(--ar-ai);
+  outline-offset: 2px;
+  border-radius: var(--ar-r-control);
+}
+
+::selection { background: var(--ar-ai-tint-2); }
+
+/* --------------------------------------------------------------------------
+   03 · TIPOGRAFÍA UTILITARIA
+   -------------------------------------------------------------------------- */
+
+.ar-eyebrow {
+  font-family: var(--ar-mono);
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+  margin: 0 0 var(--ar-s2);
+  display: block;
+}
+
+.ar-eyebrow .ar-num { color: var(--ar-ai); margin-right: var(--ar-s2); }
+
+.ar-mono {
+  font-family: var(--ar-mono);
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.ar-meta {
+  font-family: var(--ar-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+}
+
+.ar-lead { font-size: 15px; color: var(--ar-ink-2); max-width: 62ch; }
+.ar-small { font-size: 12px; color: var(--ar-ink-2); }
+.ar-muted { color: var(--ar-ink-3); }
+.ar-num-right { font-family: var(--ar-mono); font-variant-numeric: tabular-nums; text-align: right; }
+
+/* --------------------------------------------------------------------------
+   04 · SHELL DE APLICACIÓN
+   -------------------------------------------------------------------------- */
+
+.ar-shell { min-height: 100vh; display: flex; flex-direction: column; }
+
+.ar-topbar {
+  height: var(--ar-topbar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ar-s4);
+  padding: 0 var(--ar-s6);
+  border-bottom: 1px solid var(--ar-line);
+  background: var(--ar-bg);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.ar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ar-s3);
+  font-family: var(--ar-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ar-ink);
+  border: 0;
+}
+
+.ar-brand__mark { width: 14px; height: 14px; flex: none; }
+.ar-brand__sep { color: var(--ar-ink-3); }
+.ar-brand__context { color: var(--ar-ink-2); }
+
+.ar-body { display: flex; flex: 1; min-height: 0; }
+
+.ar-sidebar {
+  width: var(--ar-sidebar);
+  flex: none;
+  border-right: 1px solid var(--ar-line);
+  padding: var(--ar-s6) 0;
+  background: var(--ar-bg);
+}
+
+.ar-nav__group { margin-bottom: var(--ar-s6); }
+.ar-nav__label {
+  font-family: var(--ar-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+  padding: 0 var(--ar-s6) var(--ar-s2);
+  display: block;
+}
+
+.ar-nav__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ar-s3);
+  padding: var(--ar-s2) var(--ar-s6);
+  color: var(--ar-ink-2);
+  border: 0;
+  border-left: 2px solid transparent;
+  font-size: 13.5px;
+}
+
+.ar-nav__item:hover { background: var(--ar-surface-2); color: var(--ar-ink); border-bottom: 0; }
+
+.ar-nav__item[aria-current="page"] {
+  color: var(--ar-ink);
+  font-weight: 600;
+  border-left-color: var(--ar-ink);
+  background: var(--ar-surface-2);
+}
+
+.ar-nav__count {
+  font-family: var(--ar-mono);
+  font-size: 11px;
+  color: var(--ar-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.ar-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--ar-s8) var(--ar-s8) var(--ar-s10);
+  max-width: var(--ar-max);
+  /* Centrada dentro del hueco que deja la barra lateral. Sin esto la columna
+     se queda pegada a la izquierda y todo el sobrante del monitor —mas de
+     300px en una pantalla de 1920— se acumula en un vacio al borde derecho. */
+  margin-inline: auto;
+}
+
+.ar-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ar-s6);
+  padding-bottom: var(--ar-s5);
+  border-bottom: 1px solid var(--ar-line);
+  margin-bottom: var(--ar-s6);
+}
+
+.ar-page-head__meta { text-align: right; }
+
+.ar-section { margin-bottom: var(--ar-s10); }
+
+/* --------------------------------------------------------------------------
+   05 · TABLAS — componente por defecto para datos operativos
+   -------------------------------------------------------------------------- */
+
+.ar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ar-table thead th {
+  font-family: var(--ar-mono);
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+  text-align: left;
+  background: var(--ar-surface-3);
+  padding: var(--ar-s2) var(--ar-s3);
+  border-bottom: 1px solid var(--ar-line);
+  white-space: nowrap;
+}
+
+.ar-table tbody td {
+  padding: var(--ar-s3);
+  border-bottom: 1px solid var(--ar-line-soft);
+  color: var(--ar-ink-2);
+  vertical-align: middle;
+}
+
+/* La primera columna es la entidad: se renderiza en tinta principal */
+.ar-table tbody td:first-child { color: var(--ar-ink); font-weight: 500; }
+
+.ar-table tbody tr:hover td { background: var(--ar-surface-2); }
+
+.ar-table td.ar-num,
+.ar-table th.ar-num {
+  font-family: var(--ar-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ar-table td.ar-code { font-family: var(--ar-mono); font-size: 12px; }
+
+/* Fechas: "22 JUL 2026" partido en tres renglones roba mas ancho del que ahorra */
+.ar-table td.ar-date, .ar-table th.ar-date { white-space: nowrap; }
+
+/*
+ * Envoltorio para tablas anchas.
+ *
+ * Sin esto, una columna de mas empuja el ancho de la PAGINA: scrollea todo en
+ * horizontal, incluida la navegacion, y las ultimas columnas quedan fuera de
+ * la ventana sin ninguna pista de que estan ahi. Con el envoltorio, el
+ * desbordamiento se queda dentro de la tabla.
+ */
+.ar-table-scroll { overflow-x: auto; }
+.ar-table-scroll > .ar-table { min-width: 100%; }
+
+/* Matriz de comparación — para contrastes, no para listados */
+.ar-matrix td:first-child {
+  font-family: var(--ar-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+  font-weight: 400;
+}
+
+/* Fila con diferencia detectada por el cotejo */
+.ar-matrix tr[data-diff="true"] td { background: var(--ar-surface-2); }
+.ar-matrix tr[data-diff="true"] td:last-child { color: var(--ar-danger); font-weight: 500; }
+
+/* --------------------------------------------------------------------------
+   06 · ESTATUS — dots, labels, badges, pills
+   -------------------------------------------------------------------------- */
+
+.ar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ar-s2);
+  font-family: var(--ar-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ar-ink-2);
+  white-space: nowrap;
+}
+
+.ar-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ar-ink-3);
+  flex: none;
+}
+
+.ar-status[data-tone="ok"]::before { background: var(--ar-ok); }
+.ar-status[data-tone="warn"]::before { background: var(--ar-warn); }
+.ar-status[data-tone="danger"]::before { background: var(--ar-danger); }
+.ar-status[data-tone="ai"]::before { background: var(--ar-ai); }
+
+.ar-status[data-live="true"]::before { animation: ar-pulse 2s ease-in-out infinite; }
+
+@keyframes ar-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.ar-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--ar-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 2px var(--ar-s2);
+  border-radius: var(--ar-r-control);
+  background: var(--ar-surface-3);
+  color: var(--ar-ink-2);
+  border: 1px solid var(--ar-line);
+}
+
+/* Badge AUTO — señala contenido extraído o calculado por el sistema */
+.ar-badge[data-tone="ai"] {
+  background: var(--ar-ai-tint);
+  color: var(--ar-ai-ink);
+  border-color: var(--ar-ai-tint-2);
+}
+
+.ar-badge[data-tone="ok"] { background: var(--ar-ok-tint); color: var(--ar-ok); border-color: transparent; }
+.ar-badge[data-tone="warn"] { background: var(--ar-warn-tint); color: var(--ar-warn); border-color: transparent; }
+.ar-badge[data-tone="danger"] { background: var(--ar-danger-tint); color: var(--ar-danger); border-color: transparent; }
+
+.ar-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ar-s2);
+  border: 1px solid var(--ar-line-2);
+  border-radius: var(--ar-r-pill);
+  padding: var(--ar-s1) var(--ar-s3);
+  font-family: var(--ar-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ar-ink-2);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* `aria-pressed` cuando la pildora es un boton; `aria-current` cuando es un
+   enlace —un enlace no admite aria-pressed— y el filtro vive en la URL. */
+.ar-pill[aria-pressed="true"],
+.ar-pill[aria-current="page"] { border-color: var(--ar-ink); color: var(--ar-ink); }
+
+/* --------------------------------------------------------------------------
+   07 · CARDS
+   -------------------------------------------------------------------------- */
+
+.ar-card {
+  border: 1px solid var(--ar-line);
+  border-radius: var(--ar-r-card);
+  background: var(--ar-bg);
+  padding: var(--ar-s5);
+}
+
+.ar-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ar-s3);
+  margin-bottom: var(--ar-s3);
+}
+
+/* Identificador en bloque sólido a la izquierda */
+.ar-card__id {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: var(--ar-ink);
+  color: var(--ar-on-accent);
+  font-family: var(--ar-mono);
+  font-size: 11px;
+  border-radius: var(--ar-r-control);
+}
+
+/* Card IA — borde violeta, barra de acento superior, sombra tenue.
+   Reservada para contenido generado o recomendado por el sistema. */
+.ar-card[data-ai="true"] {
+  border-color: var(--ar-ai-tint-2);
+  box-shadow: var(--ar-shadow-ai);
+  position: relative;
+  overflow: hidden;
+}
+
+.ar-card[data-ai="true"]::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--ar-ai);
+}
+
+/* --------------------------------------------------------------------------
+   08 · INFO-BOX
+   -------------------------------------------------------------------------- */
+
+.ar-info {
+  border-left: 2px solid var(--ar-ink-3);
+  background: var(--ar-surface-2);
+  padding: var(--ar-s3) var(--ar-s4);
+  border-radius: 0 var(--ar-r-control) var(--ar-r-control) 0;
+  margin-bottom: var(--ar-s4);
+}
+
+.ar-info__label {
+  font-family: var(--ar-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+  display: block;
+  margin-bottom: var(--ar-s1);
+}
+
+.ar-info p:last-child { margin-bottom: 0; }
+
+.ar-info[data-tone="ai"] { border-left-color: var(--ar-ai); background: var(--ar-ai-tint); }
+.ar-info[data-tone="ai"] .ar-info__label { color: var(--ar-ai-ink); }
+.ar-info[data-tone="warn"] { border-left-color: var(--ar-warn); background: var(--ar-warn-tint); }
+.ar-info[data-tone="danger"] { border-left-color: var(--ar-danger); background: var(--ar-danger-tint); }
+.ar-info[data-tone="ok"] { border-left-color: var(--ar-ok); background: var(--ar-ok-tint); }
+
+/* --------------------------------------------------------------------------
+   09 · KPI
+   -------------------------------------------------------------------------- */
+
+.ar-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0;
+  border: 1px solid var(--ar-line);
+  border-radius: var(--ar-r-card);
+  overflow: hidden;
+}
+
+.ar-kpi {
+  padding: var(--ar-s4) var(--ar-s5);
+  border-right: 1px solid var(--ar-line-soft);
+}
+
+.ar-kpi:last-child { border-right: 0; }
+
+.ar-kpi__label {
+  font-family: var(--ar-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+  display: block;
+  margin-bottom: var(--ar-s2);
+}
+
+/* El valor nunca lleva color. El color va solo en el delta o el dot. */
+.ar-kpi__value {
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ar-kpi__unit { font-size: 14px; color: var(--ar-ink-3); margin-left: 2px; }
+.ar-kpi__delta { margin-top: var(--ar-s2); font-family: var(--ar-mono); font-size: 10.5px; color: var(--ar-ink-2); }
+.ar-kpi__delta[data-tone="ok"] { color: var(--ar-ok); }
+.ar-kpi__delta[data-tone="warn"] { color: var(--ar-warn); }
+.ar-kpi__delta[data-tone="danger"] { color: var(--ar-danger); }
+
+/* --------------------------------------------------------------------------
+   10 · METER
+   -------------------------------------------------------------------------- */
+
+.ar-meter { height: 4px; background: var(--ar-surface-3); border-radius: var(--ar-r-pill); overflow: hidden; }
+.ar-meter__fill { height: 100%; background: var(--ar-ink-2); }
+.ar-meter__fill[data-tone="ok"] { background: var(--ar-ok); }
+.ar-meter__fill[data-tone="warn"] { background: var(--ar-warn); }
+.ar-meter__fill[data-tone="danger"] { background: var(--ar-danger); }
+.ar-meter__fill[data-tone="ai"] { background: var(--ar-ai); }
+
+/* --------------------------------------------------------------------------
+   11 · BOTONES
+   -------------------------------------------------------------------------- */
+
+.ar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ar-s2);
+  height: 32px;
+  padding: 0 var(--ar-s4);
+  border-radius: var(--ar-r-control);
+  border: 1px solid transparent;
+  font-family: var(--ar-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--ar-ink);
+  color: var(--ar-on-accent);
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.ar-btn:hover { background: #000; }
+.ar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ar-btn[data-variant="secondary"] {
+  background: transparent;
+  color: var(--ar-ink);
+  border-color: var(--ar-line-2);
+}
+.ar-btn[data-variant="secondary"]:hover { background: var(--ar-surface-2); border-color: var(--ar-ink); }
+
+.ar-btn[data-variant="ghost"] { background: transparent; color: var(--ar-ink-2); }
+.ar-btn[data-variant="ghost"]:hover { background: var(--ar-surface-2); color: var(--ar-ink); }
+
+.ar-btn[data-variant="danger"] { background: var(--ar-danger); color: var(--ar-on-accent); }
+.ar-btn[data-variant="danger"]:hover { background: #B93C2A; }
+
+/* Variante AI — solo acciones ejecutadas por el sistema */
+.ar-btn[data-variant="ai"] { background: var(--ar-ai); color: var(--ar-on-accent); }
+.ar-btn[data-variant="ai"]:hover { background: var(--ar-ai-ink); }
+
+.ar-btn-row { display: flex; gap: var(--ar-s2); align-items: center; }
+
+/* --------------------------------------------------------------------------
+   12 · FORMULARIOS
+   -------------------------------------------------------------------------- */
+
+.ar-field { margin-bottom: var(--ar-s4); }
+
+.ar-field__label {
+  font-family: var(--ar-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+  display: flex;
+  align-items: center;
+  gap: var(--ar-s2);
+  margin-bottom: var(--ar-s2);
+}
+
+.ar-input,
+.ar-select,
+.ar-textarea {
+  width: 100%;
+  min-height: 32px;
+  padding: var(--ar-s2) var(--ar-s3);
+  border: 1px solid var(--ar-line-2);
+  border-radius: var(--ar-r-control);
+  background: var(--ar-bg);
+  color: var(--ar-ink);
+  font-family: var(--ar-sans);
+  font-size: 13.5px;
+}
+
+.ar-textarea { min-height: 88px; resize: vertical; }
+
+.ar-input:hover,
+.ar-select:hover,
+.ar-textarea:hover { border-color: var(--ar-ink-3); }
+
+.ar-input::placeholder,
+.ar-textarea::placeholder { color: var(--ar-ink-3); }
+
+.ar-input:disabled,
+.ar-select:disabled { background: var(--ar-surface-2); color: var(--ar-ink-3); cursor: not-allowed; }
+
+/* Campos de dato de máquina: RFC, UUID, códigos, montos */
+.ar-input[data-machine="true"] { font-family: var(--ar-mono); font-size: 12.5px; }
+
+/* Campo pre-llenado por extracción automática */
+.ar-input[data-auto="true"],
+.ar-select[data-auto="true"] {
+  border-color: var(--ar-ai-tint-2);
+  background: var(--ar-ai-tint);
+}
+
+.ar-field__help { font-size: 12px; color: var(--ar-ink-3); margin-top: var(--ar-s1); }
+.ar-field__error { font-size: 12px; color: var(--ar-danger); margin-top: var(--ar-s1); }
+.ar-field[data-invalid="true"] .ar-input { border-color: var(--ar-danger); }
+
+.ar-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 var(--ar-s5); }
+
+/* --------------------------------------------------------------------------
+   13 · STEPPER — flujos de carga de factura
+   -------------------------------------------------------------------------- */
+
+.ar-steps {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--ar-line);
+  margin-bottom: var(--ar-s6);
+}
+
+.ar-step {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ar-s2);
+  padding: 0 var(--ar-s5) var(--ar-s3) 0;
+  margin-right: var(--ar-s5);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--ar-ink-3);
+  font-size: 13px;
+}
+
+.ar-step__num { font-family: var(--ar-mono); font-size: 10px; letter-spacing: 0.12em; }
+.ar-step[data-state="current"] { color: var(--ar-ink); font-weight: 600; border-bottom-color: var(--ar-ink); }
+.ar-step[data-state="done"] { color: var(--ar-ink-2); }
+.ar-step[data-state="done"] .ar-step__num { color: var(--ar-ok); }
+
+/* --------------------------------------------------------------------------
+   14 · CARGA DE ARCHIVOS
+   -------------------------------------------------------------------------- */
+
+.ar-drop {
+  border: 1px dashed var(--ar-line-2);
+  border-radius: var(--ar-r-card);
+  background: var(--ar-surface-2);
+  padding: var(--ar-s8) var(--ar-s5);
+  text-align: center;
+  color: var(--ar-ink-2);
+}
+
+.ar-drop[data-active="true"] { border-color: var(--ar-ink); background: var(--ar-bg); }
+.ar-drop[data-invalid="true"] { border-color: var(--ar-danger); }
+
+.ar-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ar-s3);
+  padding: var(--ar-s3);
+  border: 1px solid var(--ar-line);
+  border-radius: var(--ar-r-control);
+  margin-bottom: var(--ar-s2);
+}
+
+.ar-file__name { font-family: var(--ar-mono); font-size: 12px; color: var(--ar-ink); }
+.ar-file__size { font-family: var(--ar-mono); font-size: 11px; color: var(--ar-ink-3); }
+
+/* --------------------------------------------------------------------------
+   15 · LÍNEA DE TIEMPO — bitácora de la factura
+   -------------------------------------------------------------------------- */
+
+.ar-timeline { list-style: none; margin: 0; padding: 0 0 0 var(--ar-s4); border-left: 1px solid var(--ar-line); }
+
+.ar-timeline__item { position: relative; padding: 0 0 var(--ar-s5) var(--ar-s4); }
+
+.ar-timeline__item::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--ar-s4) - 4px);
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ar-ink-3);
+  border: 2px solid var(--ar-bg);
+}
+
+.ar-timeline__item[data-tone="ok"]::before { background: var(--ar-ok); }
+.ar-timeline__item[data-tone="warn"]::before { background: var(--ar-warn); }
+.ar-timeline__item[data-tone="danger"]::before { background: var(--ar-danger); }
+.ar-timeline__item[data-tone="ai"]::before { background: var(--ar-ai); }
+
+.ar-timeline__time {
+  font-family: var(--ar-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+  display: block;
+}
+
+.ar-timeline__title { font-weight: 600; }
+.ar-timeline__actor { font-size: 12px; color: var(--ar-ink-2); }
+
+/* --------------------------------------------------------------------------
+   16 · ESTADOS VACÍOS Y BLOQUEADOS
+   -------------------------------------------------------------------------- */
+
+.ar-empty {
+  border: 1px solid var(--ar-line);
+  border-radius: var(--ar-r-card);
+  padding: var(--ar-s10) var(--ar-s6);
+  text-align: center;
+  color: var(--ar-ink-2);
+}
+
+.ar-empty__title { font-weight: 600; color: var(--ar-ink); margin-bottom: var(--ar-s2); }
+.ar-empty p { margin: 0 auto var(--ar-s4); max-width: 46ch; }
+
+/* --------------------------------------------------------------------------
+   17 · PAGINACIÓN
+   -------------------------------------------------------------------------- */
+
+.ar-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--ar-s4);
+  font-family: var(--ar-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ar-ink-3);
+}
+
+/* --------------------------------------------------------------------------
+   18 · MODAL
+   -------------------------------------------------------------------------- */
+
+.ar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 18, 0.32);
+  display: grid;
+  place-items: center;
+  padding: var(--ar-s5);
+  z-index: 40;
+}
+
+.ar-modal {
+  width: min(520px, 100%);
+  background: var(--ar-bg);
+  border: 1px solid var(--ar-line);
+  border-radius: var(--ar-r-container);
+  box-shadow: var(--ar-shadow-2);
+  padding: var(--ar-s6);
+}
+
+.ar-modal__head { margin-bottom: var(--ar-s4); }
+.ar-modal__foot { display: flex; justify-content: flex-end; gap: var(--ar-s2); margin-top: var(--ar-s6); }
+
+/* --------------------------------------------------------------------------
+   19 · RESPONSIVE
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .ar-body { flex-direction: column; }
+
+  .ar-sidebar {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--ar-line);
+    padding: var(--ar-s3) 0;
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .ar-nav__group { display: flex; margin: 0; }
+  .ar-nav__label { display: none; }
+  .ar-nav__item { border-left: 0; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .ar-nav__item[aria-current="page"] { border-left: 0; border-bottom-color: var(--ar-ink); }
+
+  .ar-main { padding: var(--ar-s5) var(--ar-s4) var(--ar-s8); }
+  .ar-page-head { flex-direction: column; gap: var(--ar-s3); }
+  .ar-page-head__meta { text-align: left; }
+
+  /* Tablas densas: se convierten en fichas apiladas */
+  /* Ya apiladas no desbordan, y el scroll horizontal solo estorbaria al gesto
+     vertical del pulgar. */
+  .ar-table-scroll { overflow-x: visible; }
+  .ar-table--stack thead { display: none; }
+  .ar-table--stack tbody tr {
+    display: block;
+    border: 1px solid var(--ar-line);
+    border-radius: var(--ar-r-card);
+    padding: var(--ar-s3);
+    margin-bottom: var(--ar-s3);
+  }
+  .ar-table--stack tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--ar-s4);
+    border: 0;
+    padding: var(--ar-s1) 0;
+    text-align: right;
+  }
+  .ar-table--stack tbody td::before {
+    content: attr(data-label);
+    font-family: var(--ar-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ar-ink-3);
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* --------------------------------------------------------------------------
+   20 · IMPRESIÓN — el portal debe imprimirse en blanco y negro sin perder jerarquía
+   -------------------------------------------------------------------------- */
+
+@media print {
+  .ar-sidebar, .ar-topbar, .ar-btn, .ar-pager { display: none; }
+  .ar-main { padding: 0; max-width: none; }
+  .ar-card, .ar-table { break-inside: avoid; }
+  body { font-size: 10pt; }
+}
