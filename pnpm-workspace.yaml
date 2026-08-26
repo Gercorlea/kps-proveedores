@@ -1,0 +1,10 @@
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+  prisma: true
+  '@prisma/engines': true
+  esbuild: true
+  msgpackr-extract: true
+  # Dependencia opcional del CLI de Prisma. El portal corre sobre PostgreSQL,
+  # asi que no hace falta compilar el binding nativo de SQLite.
+  better-sqlite3: false
