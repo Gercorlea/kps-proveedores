@@ -180,49 +180,49 @@ export default function CargaFactura({
 
   return (
     <>
-      <div className="ar-page-head">
+      <div className="cr-page-head">
         <div>
           <h1>Nueva factura</h1>
-          <p className="ar-lead" style={{ marginBottom: 0 }}>
+          <p className="cr-lead cr-flush">
             Sube el XML, el PDF y la evidencia
           </p>
         </div>
-        <div className="ar-page-head__meta">
-          <span className="ar-meta">
+        <div className="cr-page-head__meta">
+          <span className="cr-meta">
             {supplierCode ? `Proveedor · ${supplierCode}` : 'Sin proveedor'}
           </span>
           <br />
-          <span className="ar-meta">
+          <span className="cr-meta">
             {esServicio ? 'Factura sin orden de compra' : 'Factura contra entrada'}
           </span>
         </div>
       </div>
 
-      <div className="ar-steps">
+      <div className="cr-steps">
         {PASOS.map(([num, label], i) => {
           const n = i + 1
           const estado = n < paso ? 'done' : n === paso ? 'current' : 'pending'
           return (
-            <span className="ar-step" data-state={estado} key={num}>
-              <span className="ar-step__num">{num}</span>
+            <span className="cr-step" data-state={estado} key={num}>
+              <span className="cr-step__num">{num}</span>
               {label}
             </span>
           )
         })}
       </div>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Paso 01 · Tu factura</span>
+      <section className="cr-section">
+        <span className="cr-label">Paso 01 · Tu factura</span>
 
-        <div className="ar-drop" data-invalid={errorXml ? 'true' : undefined}>
-          <p style={{ margin: 0, fontWeight: 600 }}>Sube el XML y el PDF</p>
-          <p className="ar-small" style={{ margin: '4px auto 16px' }}>
+        <div className="cr-drop" data-invalid={errorXml ? 'true' : undefined}>
+          <p className="cr-drop__title">Sube el XML y el PDF</p>
+          <p className="cr-small cr-drop__hint">
             Los dos archivos son obligatorios
           </p>
-          <div className="ar-btn-row" style={{ justifyContent: 'center' }}>
+          <div className="cr-btn-row cr-btn-row--center">
             <button
               type="button"
-              className="ar-btn"
+              className="cr-btn"
               data-variant="secondary"
               onClick={() => xmlRef.current?.click()}
               disabled={procesando}
@@ -231,7 +231,7 @@ export default function CargaFactura({
             </button>
             <button
               type="button"
-              className="ar-btn"
+              className="cr-btn"
               data-variant="secondary"
               onClick={() => pdfRef.current?.click()}
             >
@@ -258,20 +258,20 @@ export default function CargaFactura({
         </div>
 
         {errorXml && (
-          <div className="ar-info" data-tone="danger" style={{ marginTop: 'var(--ar-s3)' }}>
-            <span className="ar-info__label">El XML no se pudo procesar</span>
+          <div className="cr-info cr-mt-3" data-tone="danger">
+            <span className="cr-info__label">El XML no se pudo procesar</span>
             <p>{errorXml}</p>
           </div>
         )}
 
-        <div style={{ marginTop: 'var(--ar-s3)' }}>
+        <div className="cr-mt-3">
           {xml && (
-            <div className="ar-file">
-              <span className="ar-file__name">{xml.name}</span>
-              <span className="ar-file__size">{kb(xml.size)}</span>
+            <div className="cr-file">
+              <span className="cr-file__name">{xml.name}</span>
+              <span className="cr-file__size">{kb(xml.size)}</span>
               <button
                 type="button"
-                className="ar-btn"
+                className="cr-btn"
                 data-variant="ghost"
                 onClick={() => {
                   setXml(null)
@@ -284,12 +284,12 @@ export default function CargaFactura({
             </div>
           )}
           {pdf && (
-            <div className="ar-file">
-              <span className="ar-file__name">{pdf.name}</span>
-              <span className="ar-file__size">{kb(pdf.size)}</span>
+            <div className="cr-file">
+              <span className="cr-file__name">{pdf.name}</span>
+              <span className="cr-file__size">{kb(pdf.size)}</span>
               <button
                 type="button"
-                className="ar-btn"
+                className="cr-btn"
                 data-variant="ghost"
                 onClick={() => {
                   setPdf(null)
@@ -304,97 +304,97 @@ export default function CargaFactura({
       </section>
 
       {extraido && (
-        <section className="ar-section">
-          <span className="ar-eyebrow">Datos extraidos del XML</span>
+        <section className="cr-section">
+          <span className="cr-label">Datos extraidos del XML</span>
 
-          <div className="ar-card" data-ai="true">
-            <div className="ar-card__head">
+          <div className="cr-card" data-ai="true">
+            <div className="cr-card__head">
               <div>
                 <h3>
                   {extraido.esNotaDeCredito ? 'Nota de credito' : 'Factura'}{' '}
                   {extraido.comprobante.serie ?? ''}
                   {extraido.comprobante.folio ? `-${extraido.comprobante.folio}` : ''}
                 </h3>
-                <span className="ar-small">{extraido.emisor.nombre}</span>
+                <span className="cr-small">{extraido.emisor.nombre}</span>
               </div>
-              <span className="ar-badge" data-tone="ai" style={{ marginLeft: 'auto' }}>
+              <span className="cr-badge cr-push" data-tone="ai">
                 Auto
               </span>
             </div>
 
-            <table className="ar-table ar-matrix">
+            <table className="cr-table cr-matrix">
               <tbody>
                 <tr>
                   <td>UUID</td>
-                  <td className="ar-code">{extraido.timbre.uuid}</td>
+                  <td className="cr-code">{extraido.timbre.uuid}</td>
                 </tr>
                 <tr>
                   <td>RFC emisor</td>
-                  <td className="ar-code">{extraido.emisor.rfc}</td>
+                  <td className="cr-code">{extraido.emisor.rfc}</td>
                 </tr>
                 <tr>
                   <td>RFC receptor</td>
-                  <td className="ar-code">{extraido.receptor.rfc}</td>
+                  <td className="cr-code">{extraido.receptor.rfc}</td>
                 </tr>
                 <tr>
                   <td>Fecha</td>
-                  <td className="ar-code">{fechaCorta(extraido.comprobante.fecha)}</td>
+                  <td className="cr-code">{fechaCorta(extraido.comprobante.fecha)}</td>
                 </tr>
                 <tr>
                   <td>Subtotal</td>
-                  <td className="ar-code">{extraido.comprobante.subTotal}</td>
+                  <td className="cr-code">{extraido.comprobante.subTotal}</td>
                 </tr>
                 <tr>
                   <td>IVA trasladado</td>
-                  <td className="ar-code">{extraido.comprobante.trasladados}</td>
+                  <td className="cr-code">{extraido.comprobante.trasladados}</td>
                 </tr>
                 {extraido.comprobante.retenidos !== '0.00' && (
                   <tr>
                     <td>Retenciones</td>
-                    <td className="ar-code">{extraido.comprobante.retenidos}</td>
+                    <td className="cr-code">{extraido.comprobante.retenidos}</td>
                   </tr>
                 )}
                 <tr>
                   <td>Total</td>
-                  <td className="ar-code">
+                  <td className="cr-code">
                     {extraido.comprobante.total} {extraido.comprobante.moneda}
                   </td>
                 </tr>
               </tbody>
             </table>
 
-            <p className="ar-small" style={{ marginTop: 'var(--ar-s3)', marginBottom: 0 }}>
+            <p className="cr-small cr-mt-3 cr-flush">
               Estos datos vienen de tu XML. Si algo no coincide con tu factura, el archivo es
               incorrecto.
             </p>
           </div>
 
-          <div style={{ marginTop: 'var(--ar-s4)' }}>
-            <span className="ar-eyebrow">Conceptos</span>
-            <table className="ar-table ar-table--stack">
+          <div className="cr-mt-4">
+            <span className="cr-label">Conceptos</span>
+            <table className="cr-table cr-table--stack">
               <thead>
                 <tr>
                   <th>Descripcion</th>
                   <th>Codigo</th>
-                  <th className="ar-num">Cantidad</th>
-                  <th className="ar-num">Valor unitario</th>
-                  <th className="ar-num">Importe</th>
+                  <th className="cr-num">Cantidad</th>
+                  <th className="cr-num">Valor unitario</th>
+                  <th className="cr-num">Importe</th>
                 </tr>
               </thead>
               <tbody>
                 {extraido.conceptos.map((c) => (
                   <tr key={c.linea}>
                     <td data-label="Descripcion">{c.descripcion}</td>
-                    <td className="ar-code" data-label="Codigo">
+                    <td className="cr-code" data-label="Codigo">
                       {c.noIdentificacion ?? '—'}
                     </td>
-                    <td className="ar-num" data-label="Cantidad">
+                    <td className="cr-num" data-label="Cantidad">
                       {c.cantidad}
                     </td>
-                    <td className="ar-num" data-label="Valor unitario">
+                    <td className="cr-num" data-label="Valor unitario">
                       {c.valorUnitario}
                     </td>
-                    <td className="ar-num" data-label="Importe">
+                    <td className="cr-num" data-label="Importe">
                       {c.importe}
                     </td>
                   </tr>
@@ -406,22 +406,22 @@ export default function CargaFactura({
         </section>
       )}
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Paso 02 · Evidencia</span>
-        <p className="ar-small">
+      <section className="cr-section">
+        <span className="cr-label">Paso 02 · Evidencia</span>
+        <p className="cr-small">
           {esServicio
             ? 'Reporte firmado, acta de conformidad o entregable. Es lo que revisa KPS.'
             : 'La remision firmada por almacen.'}
         </p>
 
-        <div className="ar-field-grid">
-          <div className="ar-field">
-            <label className="ar-field__label" htmlFor="titulo">
+        <div className="cr-field-grid">
+          <div className="cr-field">
+            <label className="cr-field__label" htmlFor="titulo">
               Titulo de la evidencia
             </label>
             <input
               id="titulo"
-              className="ar-input"
+              className="cr-input"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder={esServicio ? 'Acta de conformidad agosto' : 'Remision firmada 5524'}
@@ -429,16 +429,15 @@ export default function CargaFactura({
             />
           </div>
 
-          <div className="ar-field">
-            <label className="ar-field__label" htmlFor="archivo">
+          <div className="cr-field">
+            <label className="cr-field__label" htmlFor="archivo">
               Archivo de evidencia
             </label>
             <button
               type="button"
-              className="ar-btn"
+              className="cr-btn cr-btn--block"
               data-variant="secondary"
               onClick={() => evidRef.current?.click()}
-              style={{ width: '100%' }}
             >
               {evidencia ? 'Cambiar evidencia' : 'Seleccionar evidencia'}
             </button>
@@ -449,17 +448,17 @@ export default function CargaFactura({
               hidden
               onChange={(e) => setEvidencia(e.target.files?.[0] ?? null)}
             />
-            <div className="ar-field__help">No es tu factura: es el documento que prueba el trabajo.</div>
+            <div className="cr-field__help">No es tu factura: es el documento que prueba el trabajo.</div>
           </div>
         </div>
 
-        <div className="ar-field">
-          <label className="ar-field__label" htmlFor="descripcion">
+        <div className="cr-field">
+          <label className="cr-field__label" htmlFor="descripcion">
             Descripcion
           </label>
           <textarea
             id="descripcion"
-            className="ar-textarea"
+            className="cr-textarea"
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             placeholder={
@@ -469,16 +468,16 @@ export default function CargaFactura({
             }
             maxLength={600}
           />
-          <div className="ar-field__help">{descripcion.length}/600</div>
+          <div className="cr-field__help">{descripcion.length}/600</div>
         </div>
 
         {evidencia && (
-          <div className="ar-file">
-            <span className="ar-file__name">{evidencia.name}</span>
-            <span className="ar-file__size">{kb(evidencia.size)}</span>
+          <div className="cr-file">
+            <span className="cr-file__name">{evidencia.name}</span>
+            <span className="cr-file__size">{kb(evidencia.size)}</span>
             <button
               type="button"
-              className="ar-btn"
+              className="cr-btn"
               data-variant="ghost"
               onClick={() => {
                 setEvidencia(null)
@@ -491,15 +490,15 @@ export default function CargaFactura({
         )}
       </section>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Paso 03 · Envio</span>
+      <section className="cr-section">
+        <span className="cr-label">Paso 03 · Envio</span>
 
         {errorEnvio && (
-          <div className="ar-info" data-tone="danger">
-            <span className="ar-info__label">No se envio la factura</span>
+          <div className="cr-info" data-tone="danger">
+            <span className="cr-info__label">No se envio la factura</span>
             <p>{errorEnvio}</p>
             {rechazos.map((v) => (
-              <p key={v.regla} className="ar-small">
+              <p key={v.regla} className="cr-small">
                 {v.regla.replace(/_/g, ' ')} · {v.detalle}
               </p>
             ))}
@@ -507,35 +506,35 @@ export default function CargaFactura({
         )}
 
         {enviado && (
-          <div className="ar-info" data-tone="ok">
-            <span className="ar-info__label">Factura enviada a revision</span>
+          <div className="cr-info" data-tone="ok">
+            <span className="cr-info__label">Factura enviada a revision</span>
             <p>
-              Folio <span className="ar-mono">{enviado.folio}</span>. KPS te avisara si necesita una
+              Folio <span className="cr-mono">{enviado.folio}</span>. KPS te avisara si necesita una
               correccion.
             </p>
           </div>
         )}
 
-        <div className="ar-btn-row">
+        <div className="cr-btn-row">
           <button
             type="button"
-            className="ar-btn"
+            className="cr-btn"
             disabled={!puedeEnviar || enviando || enviado !== null}
             onClick={() => void enviar()}
           >
             {enviando ? 'Enviando...' : enviado ? 'Ya enviada' : 'Enviar a revision'}
           </button>
-          <a className="ar-btn" data-variant="ghost" href="/facturas" style={{ borderBottom: 0 }}>
+          <a className="cr-btn" data-variant="ghost" href="/facturas">
             {enviado ? 'Ver mis facturas' : 'Cancelar'}
           </a>
         </div>
 
         {!enviado && bloqueantes.length > 0 ? (
-          <p className="ar-small" data-tone="danger" style={{ marginTop: 'var(--ar-s2)' }}>
+          <p className="cr-small cr-mt-2" data-tone="danger">
             {bloqueantes[0].detalle}
           </p>
         ) : !enviado && faltantes.length > 0 ? (
-          <p className="ar-small" style={{ marginTop: 'var(--ar-s2)' }}>
+          <p className="cr-small cr-mt-2">
             Falta {faltantes.join(', ')}.
           </p>
         ) : null}

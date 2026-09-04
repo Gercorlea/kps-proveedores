@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { SESSION_COOKIE, esInterno, verifySession, type SessionPayload } from '@/lib/auth/session'
@@ -5,6 +6,8 @@ import { SupplierType } from '@/lib/domain/enums'
 import { listarAvisos, type ListaAvisos } from '@/lib/notifications'
 import { puedeCapturarEntradas } from '@/lib/receipts/acceso'
 import { getProveedorActual, type ProveedorActual } from '@/lib/suppliers/current'
+import { LogOut } from './iconos'
+import NavPortal from './nav'
 import Notificaciones from './notificaciones'
 
 
@@ -19,62 +22,88 @@ interface Grupo {
   items: Item[]
 }
 
+/**
+ * El menu lateral.
+ *
+ * UN SOLO MENU, NO DOS. Antes el portal se partia en un bloque de proveedor y
+ * otro de KPS, y el personal interno acababa viendo dos enlaces sueltos —ordenes
+ * y entradas— sin manera de llegar a las demas pantallas desde la barra. Pero
+ * esas pantallas SI saben atender a un interno: /facturas y /complementos leen
+ * en modo agregado —todos los proveedores, no uno— y /notificaciones y
+ * /mi-informacion explican por su cuenta que son de un proveedor concreto. El
+ * menu era lo unico que no se habia enterado.
+ *
+ * Ahora la lista es una sola y cada renglon se gana su sitio por separado.
+ */
 function navegacion(session: SessionPayload | null, proveedor: ProveedorActual | null): Grupo[] {
   if (!session) return []
   const roles = session.roles
   const tiene = (r: string) => (roles as readonly string[]).includes(r)
+  const interno = esInterno(roles)
+  const esProveedor = tiene('PROVEEDOR_MERCANCIA') || tiene('PROVEEDOR_SERVICIO')
 
-  const grupos: Grupo[] = []
+  // Ni proveedor ni personal de KPS: no hay portal que ofrecerle.
+  if (!interno && !esProveedor) return []
 
-  if (tiene('PROVEEDOR_MERCANCIA') || tiene('PROVEEDOR_SERVICIO')) {
-    const operacion: Item[] = [{ href: '/', label: 'Inicio' }]
+  const operacion: Item[] = [{ href: '/', label: 'Inicio' }]
 
-    // Quien decide si hay ordenes de compra es el TIPO del proveedor en la base,
-    // no el rol del usuario. Los dos dicen lo mismo casi siempre, pero cuando KPS
-    // le cambia el tipo a un proveedor el rol de sus usuarios no se reescribe
-    // solo: mandar sobre el rol dejaria un menu que ofrece "Ordenes de compra" a
-    // quien ya factura sin ellas. Ante la duda —lectura fallida, proveedor sin
-    // ficha— se cae del lado de no ofrecer la seccion.
-    if (proveedor?.tipo === SupplierType.MERCANCIA) {
-      operacion.push({ href: '/ordenes', label: 'Ordenes de compra' })
-      // SOLO PRUEBAS. Con `FEATURE_ENTRADAS_PROVEEDOR=true` el proveedor tambien
-      // captura entradas, para poder recorrer el flujo entero con una sola
-      // sesion. En produccion la bandera va apagada y esto no aparece: quien da
-      // por recibida la mercancia es almacen, y un proveedor firmando su propia
-      // entrega se acreditaria lo que todavia no ha entregado.
-      if (session && puedeCapturarEntradas(session)) {
-        operacion.push({ href: '/entradas', label: 'Entradas de mercancia' })
-      }
-    }
-    operacion.push({ href: '/facturas', label: 'Facturas' })
-    grupos.push({ label: 'Operacion', items: operacion })
-    grupos.push({
+  // QUIEN DECIDE SI HAY ORDENES DE COMPRA.
+  //
+  // Para un proveedor, el TIPO que tiene en la base, no el rol de su usuario.
+  // Los dos dicen lo mismo casi siempre, pero cuando KPS le cambia el tipo a un
+  // proveedor el rol de sus usuarios no se reescribe solo: mandar sobre el rol
+  // dejaria un menu que ofrece "Ordenes de compra" a quien ya factura sin ellas.
+  // Ante la duda —lectura fallida, proveedor sin ficha— se cae del lado de no
+  // ofrecer la seccion.
+  //
+  // Para personal de KPS manda el rol, porque no tiene ficha de proveedor que
+  // mirar: la pantalla le enseña las ordenes de todos.
+  //
+  // Las dos vias van en OR y no en un ternario sobre `interno`: quien lleve los
+  // dos sombreros —un usuario de KPS que ademas factura— entra por cualquiera de
+  // ellas. Ramificar sobre el rol interno le quitaria la seccion que le toca
+  // como proveedor.
+  const veOrdenes =
+    (interno && (tiene('KPS_COMPRAS') || tiene('ADMIN_SISTEMA'))) ||
+    proveedor?.tipo === SupplierType.MERCANCIA
+  if (veOrdenes) operacion.push({ href: '/ordenes', label: 'Ordenes de compra' })
+
+  // Quien da por recibida la mercancia es almacen: un proveedor firmando su
+  // propia entrega se acreditaria lo que todavia no ha entregado. Por eso el
+  // interno la ve siempre, y el proveedor solo con `FEATURE_ENTRADAS_PROVEEDOR`,
+  // que existe para recorrer el flujo entero con una sola sesion en pruebas y va
+  // apagada en produccion. El guard de verdad esta en la pagina y en
+  // /api/v1/goods-receipts; esconder el enlace no es seguridad (§06).
+  const veEntradas =
+    interno || (proveedor?.tipo === SupplierType.MERCANCIA && puedeCapturarEntradas(session))
+  if (veEntradas) operacion.push({ href: '/entradas', label: 'Entradas de mercancia' })
+
+  operacion.push({ href: '/facturas', label: 'Facturas' })
+
+  // Mi informacion es de UN proveedor concreto. Se le sigue ofreciendo al
+  // interno a proposito —tiene que poder recorrer el portal entero para
+  // revisarlo— y la pantalla explica que hace falta una cuenta vinculada. Un
+  // enlace que dice por que no aplica es mejor que un hueco en el menu que
+  // obliga a adivinar la URL.
+  //
+  // AVISOS NO ESTA EN EL MENU a proposito. La campana de la barra ya es su
+  // entrada: lista los avisos, marca uno al abrirlo, marca todos de golpe y
+  // lleva a /notificaciones con "Ver todas". Un renglon en el menu duplicaba
+  // esa puerta y ademas competia con el contador rojo, que es el que de verdad
+  // avisa. La ruta sigue viva; lo que se quita es la segunda entrada.
+  //
+  // Peticiones, Proveedores y Usuarios viven en kps-dashboard, que es el que
+  // tiene la conexion con SAP y la administracion. Aqui no quedan.
+  return [
+    { label: 'Operacion', items: operacion },
+    {
       label: 'Documentos',
       items: [
         { href: '/complementos', label: 'Complementos de pago' },
-        { href: '/notificaciones', label: 'Avisos' },
-        { href: '/mi-informacion', label: 'Mi informacion' },
+        { href: '/mi-informacion', label: 'Mi perfil' },
       ],
-    })
-  }
-
-  if (esInterno(roles)) {
-    const kps: Item[] = []
-    if (tiene('KPS_COMPRAS') || tiene('ADMIN_SISTEMA')) {
-      kps.push({ href: '/ordenes', label: 'Ordenes de compra' })
-    }
-    // Registrar que llego la mercancia. Va en el bloque interno y no en el del
-    // proveedor porque quien da por recibida la mercancia es almacen: un
-    // proveedor firmando su propia entrega se acreditaria lo que todavia no ha
-    // entregado. El guard de verdad esta en la pagina y en
-    // /api/v1/goods-receipts; esconder el enlace no es seguridad (§06).
-    kps.push({ href: '/entradas', label: 'Entradas de mercancia' })
-    // Peticiones, Proveedores y Usuarios viven en kps-dashboard, que es el que
-    // tiene la conexion con SAP y la administracion. Aqui no quedan.
-    if (kps.length > 0) grupos.push({ label: 'KPS', items: kps })
-  }
-
-  return grupos
+    },
+  ]
 }
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -108,61 +137,61 @@ export default async function PortalLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="ar-shell">
-      <header className="ar-topbar">
-        <Link href="/" className="ar-brand">
-          <svg className="ar-brand__mark" viewBox="0 0 14 14" aria-hidden="true">
-            <path d="M7 1 13 12.5H1Z" fill="currentColor" />
-          </svg>
-          <span>Arcanum</span>
-          <span className="ar-brand__sep">·</span>
-          <span>Portal de Proveedores</span>
+    <div className="cr-shell">
+      <header className="cr-topbar">
+        {/* La marca ocupa una columna del ancho del sidebar: su borde derecho y
+            el del sidebar son la misma linea vertical. Ver §04 de cronos.css.
+
+            SOLO EL LOGOTIPO. Antes llevaba al lado el rotulo "PORTAL DE
+            PROVEEDORES", que obligaba a dejar la marca en 92px para que el
+            rotulo cupiera en dos lineas. El nombre del producto ya lo dice cada
+            pantalla en su titulo, asi que la columna entera es del logotipo. */}
+        <Link href="/" className="cr-brand">
+          <Image
+            className="cr-brand__logo"
+            src="/group-kps.png"
+            alt="Group KPS"
+            width={431}
+            height={150}
+            priority
+          />
         </Link>
 
-        {/* Arriba queda solo lo que identifica a la EMPRESA: de que tipo de
-            proveedor es. Quien entro y el boton de salir bajan al pie de la
-            barra lateral. */}
-        <div className="ar-brand">
+        {/* Arriba queda solo lo que identifica a la EMPRESA a la que se factura.
+            Quien entro y el boton de salir bajan al pie de la barra lateral.
+            El punto lleva el estado —verde en operacion, rojo bloqueada—: es
+            color de estatus en un dot, que es donde la spec lo permite. */}
+        <div className="cr-topbar__context">
           {proveedor ? (
             <>
               <span
-                className="ar-status"
-                data-tone={proveedor.bloqueado ? 'danger' : 'ok'}
+                className="cr-pill"
                 title={
-                  proveedor.tipo === 'SERVICIO'
-                    ? 'Facturas sin orden de compra, con evidencia del servicio prestado.'
-                    : 'Facturas contra una entrada de mercancia, a partir de tus ordenes de compra.'
+                  (proveedor.tipo === 'SERVICIO'
+                    ? 'Proveedor de servicios · Facturas sin orden de compra, con evidencia del servicio prestado.'
+                    : 'Proveedor comercial · Facturas contra una entrada de mercancia, a partir de tus ordenes de compra.') +
+                  (proveedor.bloqueado ? ' · Cuenta bloqueada.' : '')
                 }
               >
-                {proveedor.tipo === 'SERVICIO' ? 'Proveedor de servicios' : 'Proveedor comercial'}
+                <span className={proveedor.bloqueado ? 'cr-dot cr-dot--danger' : 'cr-dot cr-dot--ok'} />
+                {proveedor.nombre}
               </span>
-              <span className="ar-brand__sep">·</span>
-              <span>{proveedor.nombre}</span>
-              <span className="ar-brand__sep">·</span>
-              <span className="ar-brand__context">{session?.supplierCode}</span>
+              <span className="cr-brand__context cr-mono">{session?.supplierCode}</span>
             </>
           ) : (
-            <span className="ar-brand__context">KPS</span>
+            <span className="cr-pill">
+              <span className="cr-dot" />
+              KPS
+            </span>
           )}
-          {session && <Notificaciones inicial={avisos} />}
         </div>
+
+        <div className="cr-topbar__right">{session && <Notificaciones inicial={avisos} />}</div>
       </header>
 
-      <div className="ar-body">
-        <nav className="ar-sidebar pf-sidebar" aria-label="Navegacion principal">
-          <div className="pf-nav">
-            {grupos.map((grupo) => (
-              <div className="ar-nav__group" key={grupo.label}>
-                <span className="ar-nav__label">{grupo.label}</span>
-                {grupo.items.map((item) => (
-                  <a key={`${grupo.label}-${item.href}`} href={item.href} className="ar-nav__item">
-                    <span>{item.label}</span>
-                    {item.count !== undefined && <span className="ar-nav__count">{item.count}</span>}
-                  </a>
-                ))}
-              </div>
-            ))}
-          </div>
+      <div className="cr-body">
+        <nav className="cr-sidebar pf-sidebar" aria-label="Navegacion principal">
+          <NavPortal grupos={grupos} />
 
           {session && (
             <div className="pf-user">
@@ -170,18 +199,21 @@ export default async function PortalLayout({ children }: { children: React.React
                 {session.name}
               </div>
               <div className="pf-user__meta">{session.supplierCode ?? session.email}</div>
-              <a href="/api/v1/auth/logout" className="ar-nav__item pf-salir">
-                <span>Cerrar sesion</span>
+              {/* Sigue siendo <a> y no <Link>: es un endpoint de la API que
+                  borra la cookie y redirige, no una ruta del portal. */}
+              <a href="/api/v1/auth/logout" className="cr-nav__item pf-salir">
+                <LogOut className="cr-nav__icon" />
+                <span className="cr-nav__text">Cerrar sesion</span>
               </a>
             </div>
           )}
         </nav>
 
-        <main className="ar-main">{children}</main>
+        <main className="cr-main">{children}</main>
       </div>
 
       <style>{`
-        /* Clases propias, no redefiniciones: .ar-sidebar no es columna flex y
+        /* Clases propias, no redefiniciones: .cr-sidebar no es columna flex y
            hace falta que lo sea para anclar el pie abajo del todo. */
         .pf-sidebar {
           display: flex;
@@ -192,14 +224,17 @@ export default async function PortalLayout({ children }: { children: React.React
         .pf-user {
           flex: none;
           margin-top: auto;
-          padding-top: var(--ar-s3);
-          border-top: 1px solid var(--ar-line);
+          padding-top: var(--cr-s3);
+          border-top: 1px solid var(--cr-line);
         }
         .pf-user__name {
-          padding: 0 var(--ar-s6);
+          /* Mismo sangrado que el texto de un .cr-nav__item: el padding del
+             renglon (s3) sobre el padding de la barra. Con s6 el pie quedaba
+             12px mas adentro que la lista de arriba. */
+          padding: 0 var(--cr-s3);
           font-size: 13px;
           font-weight: 600;
-          color: var(--ar-ink);
+          color: var(--cr-ink);
           /* El correo de un proveedor puede ser largo; se corta en vez de
              ensanchar la barra. */
           overflow: hidden;
@@ -207,16 +242,42 @@ export default async function PortalLayout({ children }: { children: React.React
           white-space: nowrap;
         }
         .pf-user__meta {
-          padding: 0 var(--ar-s6) var(--ar-s2);
-          font-family: var(--ar-mono);
+          padding: 0 var(--cr-s3) var(--cr-s2);
+          font-family: var(--cr-mono);
           font-size: 11px;
-          color: var(--ar-ink-3);
+          color: var(--cr-ink-3);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-        .pf-salir { color: var(--ar-ink-3); }
-        .pf-salir:hover { color: var(--ar-danger); }
+        .pf-salir { color: var(--cr-ink-3); }
+        .pf-salir:hover { color: var(--cr-danger); background: var(--cr-danger-tint); }
+
+        /* En movil la barra deja de ser columna: es una sola tira que se
+           desliza. En columna, el pie de usuario se comia 100px del alto de
+           CADA pantalla antes de llegar al contenido. */
+        @media (max-width: 900px) {
+          .pf-sidebar { flex-direction: row; align-items: center; gap: var(--cr-s2); }
+          .pf-nav {
+            /* "min-width: 0" es lo que hace que la tira se deslice en vez de
+               ensanchar la pagina: un item flex arranca en "nunca mas angosto
+               que mi contenido", asi que con siete enlaces dentro empujaba el
+               documento a 658px de ancho y sacaba barra horizontal en el body,
+               con la topbar yendose fuera de cuadro al hacer scroll. */
+            flex: 1 1 auto; min-width: 0; display: flex; gap: var(--cr-s2);
+            overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+          }
+          .pf-nav::-webkit-scrollbar { display: none; }
+          .pf-user {
+            display: flex; align-items: center; flex: none;
+            margin: 0; padding: 0 0 0 var(--cr-s2);
+            border-top: 0; border-left: 1px solid var(--cr-line);
+          }
+          /* Quien entro ya se lee en "Mi informacion"; aqui solo tiene que
+             quedar la salida. */
+          .pf-user__name, .pf-user__meta { display: none; }
+          .pf-salir { white-space: nowrap; }
+        }
       `}</style>
     </div>
   )

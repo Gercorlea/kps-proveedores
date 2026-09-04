@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation'
 /**
  * P02 · Login.
  *
- * Misma estructura que el login de kps-dashboard: tarjeta centrada, titulo,
- * dos campos, error en linea y enlace de recuperacion. Lo que cambia son los
- * tokens — aqui manda arcanum-portal.css, alli el sistema Cronos.
+ * Tarjeta centrada: logotipo, titulo, dos campos, error en linea y enlace de
+ * recuperacion. El logotipo lo pone el layout de (auth); el titulo y todo lo
+ * demas, esta pantalla.
  *
  * El mensaje de error es deliberadamente el mismo para correo inexistente y
  * contrasena mala: distinguirlos confirma que cuentas estan dadas de alta.
@@ -54,33 +54,35 @@ export default function LoginPage() {
 
   return (
     <form onSubmit={enviar} className="lg-form">
-      <h1 className="lg-title">Iniciar sesion</h1>
+      <h1 className="cr-h1 lg-title">Iniciar sesión</h1>
 
-      <div className="ar-field">
-        <label className="ar-field__label" htmlFor="email">
+      <div className="cr-field">
+        <label className="cr-field__label" htmlFor="email">
           Correo
         </label>
         <input
           id="email"
-          className="ar-input"
+          className="cr-input"
           data-machine="true"
           type="email"
           autoComplete="email"
+          placeholder="tucorreo@empresa.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
       </div>
 
-      <div className="ar-field">
-        <label className="ar-field__label" htmlFor="password">
-          Contrasena
+      <div className="cr-field">
+        <label className="cr-field__label" htmlFor="password">
+          Contraseña
         </label>
         <input
           id="password"
-          className="ar-input"
+          className="cr-input"
           type="password"
           autoComplete="current-password"
+          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -88,42 +90,38 @@ export default function LoginPage() {
       </div>
 
       {error ? (
-        <p className="ar-small lg-error" role="alert">
+        <p className="cr-small lg-error" role="alert">
           {error}
         </p>
       ) : null}
 
-      <button type="submit" className="ar-btn lg-submit" disabled={cargando}>
-        {cargando ? 'Entrando...' : 'Entrar'}
+      <button type="submit" className="cr-btn cr-btn--block cr-btn--lg" disabled={cargando}>
+        {cargando ? 'Entrando...' : 'Iniciar sesión'}
       </button>
 
-      <a href="/recuperar" className="ar-small lg-link">
-        Olvidaste tu contrasena?
+      <a href="/recuperar" className="cr-small lg-link">
+        ¿Olvidaste tu contraseña?
       </a>
 
-      <p className="ar-small lg-aviso">
+      <p className="cr-small lg-aviso">
         Si tu alta sigue en revision por KPS, tus credenciales todavia no funcionan. Recibiras un
         correo en cuanto se resuelva.
       </p>
 
       <style>{`
-        .lg-form { display: flex; flex-direction: column; gap: var(--ar-s4); }
-        .lg-title {
-          font-size: 19px;
-          font-weight: 600;
-          text-align: center;
-          margin: 0;
-        }
-        .lg-form .ar-field { margin-bottom: 0; }
-        .lg-error { color: var(--ar-danger); margin: 0; }
-        .lg-submit { width: 100%; height: 36px; }
-        .lg-link { text-align: center; color: var(--ar-ink-2); border-bottom: 0; }
-        .lg-link:hover { color: var(--ar-ink); }
+        .lg-form { display: flex; flex-direction: column; gap: var(--cr-s4); }
+        .lg-title { text-align: center; margin-bottom: var(--cr-s2); }
+        .lg-form .cr-field { margin-bottom: 0; }
+        /* El error usa la variante oscura del rojo: a 12px, el vivo no llega a
+           AA sobre blanco. */
+        .lg-error { color: var(--cr-danger-ink); margin: 0; }
+        .lg-link { text-align: center; color: var(--cr-ink-2); }
+        .lg-link:hover { color: var(--cr-ink); }
         .lg-aviso {
           margin: 0;
-          padding-top: var(--ar-s4);
-          border-top: 1px solid var(--ar-line);
-          color: var(--ar-ink-3);
+          padding-top: var(--cr-s4);
+          border-top: 1px solid var(--cr-line);
+          color: var(--cr-ink-3);
           text-align: center;
         }
       `}</style>

@@ -7,6 +7,7 @@ import { Decimal, moneyOrZero } from '@/lib/money'
 import { getSapClient, SapError, type B1PurchaseOrder } from '@/lib/sap'
 import { leerEntradasDeOrdenes } from '@/lib/sap/entradas'
 import { leerEntradasFacturables } from '@/lib/sap/entradas-facturables'
+import { describirPlazo, leerPlazos } from '@/lib/sap/plazos'
 import CargarXml, { type EntradaOpcion } from './cargar-xml'
 
 /**
@@ -63,6 +64,21 @@ function qty(value: Decimal): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   }).format(value.toNumber())
+}
+
+/** Como se le dice cada estatus de factura al proveedor. Sin jerga interna. */
+const ESTATUS_FACTURA: Record<string, { label: string; tone?: string }> = {
+  BORRADOR: { label: 'Borrador sin enviar', tone: 'warn' },
+  EN_REVISION: { label: 'En revision' },
+  NC_EN_REVISION: { label: 'En revision' },
+  EN_CORRECCION: { label: 'Por corregir', tone: 'warn' },
+  RECHAZADA: { label: 'Rechazada', tone: 'danger' },
+  DUPLICADA: { label: 'Duplicada', tone: 'danger' },
+  APROBADA_PAGO: { label: 'Aprobada', tone: 'ok' },
+  REGISTRADA_SAP: { label: 'Aprobada', tone: 'ok' },
+  CUENTAS_POR_PAGAR: { label: 'Por pagar', tone: 'ok' },
+  PAGADA: { label: 'Pagada', tone: 'ok' },
+  CERRADA: { label: 'Pagada', tone: 'ok' },
 }
 
 const ESTADO_RENGLON: Record<string, { label: string; tone?: string }> = {
@@ -134,11 +150,11 @@ async function cargarFacturables(
 function NoEncontrada({ mensaje }: { mensaje: string }) {
   return (
     <>
-      <div className="ar-page-head">
+      <div className="cr-page-head">
         <h1>Orden de compra</h1>
       </div>
-      <div className="ar-empty">
-        <div className="ar-empty__title">{mensaje}</div>
+      <div className="cr-empty">
+        <div className="cr-empty__title">{mensaje}</div>
         <p>
           <Link href="/ordenes">Volver a las ordenes</Link>
         </p>
@@ -171,8 +187,8 @@ export default async function Page({ params }: Props) {
   const session = await getSession()
   if (!session) {
     return (
-      <div className="ar-info" data-tone="danger">
-        <span className="ar-info__label">Sin sesion</span>
+      <div className="cr-info" data-tone="danger">
+        <span className="cr-info__label">Sin sesion</span>
         <p>Vuelve a entrar para ver esta orden.</p>
       </div>
     )
@@ -184,13 +200,13 @@ export default async function Page({ params }: Props) {
     if (resultado.noExiste) return <NoEncontrada mensaje={resultado.error} />
     return (
       <>
-        <div className="ar-page-head">
+        <div className="cr-page-head">
           <h1>Orden de compra</h1>
         </div>
-        <div className="ar-info" data-tone="danger">
-          <span className="ar-info__label">No hay conexion con Business One</span>
+        <div className="cr-info" data-tone="danger">
+          <span className="cr-info__label">No hay conexion con Business One</span>
           <p>{resultado.error}</p>
-          <p className="ar-small">
+          <p className="cr-small">
             <Link href="/ordenes">Volver a las ordenes</Link>
           </p>
         </div>
@@ -219,7 +235,11 @@ export default async function Page({ params }: Props) {
   // tabla de recepcion; `cargarFacturables` dice cual se puede facturar todavia,
   // que es lo que hay que ofrecer al subir el CFDI. Van en paralelo: son dos
   // viajes a B1 que no dependen uno del otro.
-  const [entradas, facturables] = await Promise.all([cargarEntradas(oc), cargarFacturables(oc)])
+  const [entradas, facturables, plazos] = await Promise.all([
+    cargarEntradas(oc),
+    cargarFacturables(oc),
+    leerPlazos(),
+  ])
   const recepcion: Recepcion | null = entradas.ok
     ? calcularRecepcion({ orden: lineas.map(renglonDesdeB1), entradas: entradas.lineas })
     : null
@@ -276,49 +296,102 @@ export default async function Page({ params }: Props) {
   }
   const saldo = filas.length > 0 ? filas[filas.length - 1].saldo : oc.DocTotal
 
+  // Solo lo que el cliente valido que el proveedor quiere ver. Fuera, por
+  // acuerdo explicito: impuestos desglosados, referencia y claves internas.
+  // Los dias de credito corren desde que se sube la factura al portal, no desde
+  // la entrega fisica: por eso el plazo va aqui, junto al total.
+  // Sin "Proveedor" ni "Entrega": el proveedor ya encabeza la pantalla y la
+  // fecha de entrega no decide nada aqui —lo que se factura es lo que YA llego,
+  // y eso lo dice la entrada—.
+  // Con una sola entrada por facturar, ella titula la pantalla. Lo consultan
+  // tanto el titulo como el bloque de la derecha, que tiene que decir de que
+  // documento habla cuando el titulo ya no es la orden.
+  const tituloEsEntrada = facturables.entradas.length === 1
+
+  const volverA = tituloEsEntrada
+    ? `/ordenes?q=${oc.DocNum}&sel=${facturables.entradas[0].docEntry}`
+    : `/ordenes?q=${oc.DocNum}`
+
   const cabecera: Array<[string, string]> = [
-    ['Proveedor', `${oc.CardCode}${oc.CardName ? ` · ${oc.CardName}` : ''}`],
     ['Emitida', formatDate(oc.DocDate)],
-    ['Vence', formatDate(oc.DocDueDate)],
-    ['Moneda', moneda],
-    ['Subtotal', `${money(oc.DocTotal - (oc.VatSum ?? 0))} ${moneda}`],
-    ['Impuestos', `${money(oc.VatSum)} ${moneda}`],
+    ['Plazo de pago', describirPlazo(plazos, oc.PaymentGroupCode)],
     ['Total con IVA', `${money(oc.DocTotal)} ${moneda}`],
-    ['Referencia del proveedor', oc.NumAtCard ?? '—'],
-    ['DocEntry', String(oc.DocEntry)],
+    // Solo si difiere del total: con la orden entera sin facturar, los dos
+    // renglones repetian la misma cifra una debajo de otra.
+    ...(Math.abs(Math.max(0, saldo) - oc.DocTotal) > 0.01
+      ? [['Queda por facturar', `${money(Math.max(0, saldo))} ${moneda}`] as [string, string]]
+      : []),
   ]
 
   return (
     <>
-      <div className="ar-page-head">
+      <div className="cr-page-head">
         <div>
-          <h1>OC {oc.DocNum}</h1>
-          <p className="ar-lead" style={{ marginBottom: 0 }}>
-            {oc.CardCode}
-            {oc.CardName ? ` · ${oc.CardName}` : ''}
-          </p>
+          {/* Con UNA entrada por facturar manda ella: se llega a esta pantalla
+              desde esa entrada y es lo que hay que reconocer de un vistazo. Con
+              varias vuelve a mandar la orden, que es lo que las agrupa. */}
+          {tituloEsEntrada ? (
+            <>
+              <h1>Entrada {facturables.entradas[0].docNum}</h1>
+              <p className="cr-lead cr-flush">
+                OC {oc.DocNum}
+                {interno ? ` · ${oc.CardCode}${oc.CardName ? ` · ${oc.CardName}` : ''}` : ''}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1>OC {oc.DocNum}</h1>
+              <p className="cr-lead cr-flush">
+                {interno
+                  ? `${oc.CardCode}${oc.CardName ? ` · ${oc.CardName}` : ''}`
+                  : `Emitida el ${formatDate(oc.DocDate)}`}
+              </p>
+            </>
+          )}
         </div>
-        <div className="ar-page-head__meta">
-          <span className="ar-status" data-tone={estatus.tone}>
-            {oc.Cancelled === 'tYES' ? 'Cancelada' : estatus.label}
+        {/* Estos dos datos son de la ORDEN. Con el titulo puesto en la entrada
+            hay que decirlo: "Cerrada" al lado de "Entrada 322" se lee como que
+            la entrada esta cerrada —y estaria justo encima del boton que la
+            factura—. La orden se cierra al recibir la mercancia; la entrada, al
+            facturarse. No son lo mismo. */}
+        <div className="cr-page-head__meta">
+          <span className="cr-status" data-tone={estatus.tone}>
+            {tituloEsEntrada ? 'OC ' : ''}
+            {oc.Cancelled === 'tYES' ? 'Cancelada' : estatus.label.toLowerCase()}
           </span>
           <br />
-          <span className="ar-meta">Business One · PurchaseOrders</span>
+          <span className="cr-meta">
+            {tituloEsEntrada ? 'Total OC ' : ''}
+            {money(oc.DocTotal)} {moneda}
+          </span>
         </div>
       </div>
 
-      <Link href="/ordenes" className="ar-btn" data-variant="secondary" style={{ marginBottom: 16 }}>
-        Volver a las ordenes
-      </Link>
+      <div className="cr-btn-row cr-mb-4">
+        {/* Vuelve A ESTA ENTRADA, no al principio de la lista.
+            La lista tiene 314 renglones y 63 paginas: soltar ahi al proveedor
+            le obliga a volver a buscar lo que acababa de abrir. Se filtra por
+            el numero de orden —asi la entrada cae en la primera pagina— y `sel`
+            deja su ficha abierta. Sin `sel` la ficha no resuelve: solo mira
+            entre las entradas de la pagina visible. */}
+        <Link href={volverA} className="cr-btn" data-variant="secondary">
+          Volver al estado de cuenta
+        </Link>
+        {facturables.entradas.length > 0 && oc.Cancelled !== 'tYES' && (
+          <a href="#cargar-factura" className="cr-btn">
+            Cargar factura
+          </a>
+        )}
+      </div>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Datos de la orden</span>
-        <table className="ar-table ar-matrix">
+      <section className="cr-section">
+        <span className="cr-label">Datos de la orden</span>
+        <table className="cr-table cr-matrix">
           <tbody>
             {cabecera.map(([label, valor]) => (
               <tr key={label}>
                 <td>{label}</td>
-                <td className="ar-code">{valor}</td>
+                <td className="cr-code">{valor}</td>
               </tr>
             ))}
           </tbody>
@@ -326,10 +399,10 @@ export default async function Page({ params }: Props) {
       </section>
 
       {!entradas.ok && (
-        <div className="ar-info" data-tone="warn">
-          <span className="ar-info__label">No se pudieron leer las entradas de mercancia</span>
+        <div className="cr-info" data-tone="warn">
+          <span className="cr-info__label">No se pudieron leer las entradas de mercancia</span>
           <p>{entradas.error}</p>
-          <p className="ar-small">
+          <p className="cr-small">
             Sin ellas no se puede decir cuanta mercancia llego. Lo que Business One guarda en el
             renglon es lo que <em>falta</em>, y ese numero vale cero tanto si llego todo como si el
             renglon se cerro antes de tiempo.
@@ -338,8 +411,8 @@ export default async function Page({ params }: Props) {
       )}
 
       {entradas.ok && entradas.truncado && (
-        <div className="ar-info" data-tone="warn">
-          <span className="ar-info__label">Entregas recortadas</span>
+        <div className="cr-info" data-tone="warn">
+          <span className="cr-info__label">Entregas recortadas</span>
           <p>
             Hay mas entradas de mercancia de las que se pudieron leer de una vez. Lo recibido que
             se muestra abajo es un minimo, no el total.
@@ -348,8 +421,8 @@ export default async function Page({ params }: Props) {
       )}
 
       {recepcion && recepcion.renglonesSinSurtir > 0 && (
-        <div className="ar-info" data-tone="danger">
-          <span className="ar-info__label">
+        <div className="cr-info" data-tone="danger">
+          <span className="cr-info__label">
             {recepcion.renglonesSinSurtir === 1
               ? 'Un renglon se cerro sin completarse'
               : `${recepcion.renglonesSinSurtir} renglones se cerraron sin completarse`}
@@ -363,8 +436,8 @@ export default async function Page({ params }: Props) {
       )}
 
       {recepcion && recepcion.renglonesExcedidos > 0 && (
-        <div className="ar-info" data-tone="warn">
-          <span className="ar-info__label">
+        <div className="cr-info" data-tone="warn">
+          <span className="cr-info__label">
             {recepcion.renglonesExcedidos === 1
               ? 'Un renglon recibio mas de lo pedido'
               : `${recepcion.renglonesExcedidos} renglones recibieron mas de lo pedido`}
@@ -377,8 +450,8 @@ export default async function Page({ params }: Props) {
       )}
 
       {recepcion && recepcion.huerfanas.length > 0 && (
-        <div className="ar-info" data-tone="warn">
-          <span className="ar-info__label">Entregas sin renglon</span>
+        <div className="cr-info" data-tone="warn">
+          <span className="cr-info__label">Entregas sin renglon</span>
           <p>
             {recepcion.huerfanas.length} entrega(s) de mercancia apuntan a esta orden pero no a
             ninguno de sus renglones. Salen listadas abajo y no se suman a ninguna linea.
@@ -386,44 +459,40 @@ export default async function Page({ params }: Props) {
         </div>
       )}
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">
-          Lineas <span className="ar-num">{lineas.length}</span>
+      <section className="cr-section">
+        <span className="cr-label">
+          Lineas <span className="cr-num">{lineas.length}</span>
         </span>
 
         {recepcion &&
           (recepcion.sinEntradas ? (
-            <p className="ar-lead">
+            <p className="cr-lead">
               Todavia no hay ninguna entrada de mercancia contra esta orden: no ha llegado nada.
             </p>
           ) : (
-            <p className="ar-lead">
-              Se pidieron {qty(recepcion.pedido)} piezas y han llegado{' '}
-              <strong>{qty(recepcion.recibido)}</strong> en {recepcion.entregas.length}{' '}
-              {recepcion.entregas.length === 1 ? 'entrega' : 'entregas'}
-              {recepcion.pendiente.gt(0) ? `. Siguen pendientes ${qty(recepcion.pendiente)}` : ''}.
-            </p>
+            // Sin frase de resumen: la tabla de abajo ya trae Pedido, Recibido
+            // y Falta columna por columna, y el numero de entregas titula la
+            // seccion "Entradas de mercancia".
+            null
           ))}
 
         {lineas.length === 0 ? (
-          <div className="ar-empty">
-            <div className="ar-empty__title">Esta orden no tiene lineas en Business One.</div>
+          <div className="cr-empty">
+            <div className="cr-empty__title">Esta orden no tiene lineas en Business One.</div>
           </div>
         ) : (
-          <div className="ar-table-scroll">
-          <table className="ar-table ar-table--stack">
+          <div className="cr-table-scroll">
+          <table className="cr-table cr-table--stack">
             <thead>
               <tr>
                 <th>#</th>
-                <th>Articulo</th>
                 <th>Descripcion</th>
-                <th className="ar-num">Pedido</th>
-                <th className="ar-num">Recibido</th>
-                <th className="ar-num">Falta</th>
-                <th>Estado</th>
-                <th className="ar-num">Precio</th>
-                <th className="ar-num">Importe</th>
-                <th className="ar-num">IVA</th>
+                <th className="cr-num">Pedido</th>
+                <th className="cr-num">Recibido</th>
+                <th className="cr-num">Falta</th>
+                <th>Recepcion</th>
+                <th className="cr-num">Precio</th>
+                <th className="cr-num">Importe</th>
               </tr>
             </thead>
             <tbody>
@@ -432,54 +501,53 @@ export default async function Page({ params }: Props) {
                 const estado = r ? ESTADO_RENGLON[r.estado] : undefined
                 return (
                   <tr key={l.LineNum}>
-                    <td className="ar-code" data-label="#">
+                    <td className="cr-code" data-label="#">
                       {l.LineNum}
                     </td>
-                    <td className="ar-code" data-label="Articulo">
-                      {l.ItemCode ?? '—'}
-                    </td>
                     <td data-label="Descripcion">{l.ItemDescription ?? '—'}</td>
-                    <td className="ar-num" data-label="Pedido">
+                    <td className="cr-num" data-label="Pedido">
                       {qty(moneyOrZero(l.Quantity))}
                     </td>
                     {/* Sale de las entradas de mercancia, no de restarle a la
                         orden lo que falta: esa resta da por recibido lo que se
                         cerro sin llegar. */}
-                    <td className="ar-num" data-label="Recibido">
+                    <td className="cr-num" data-label="Recibido">
                       {r ? qty(r.recibido) : '—'}
                     </td>
-                    <td className="ar-num" data-label="Falta">
-                      {r ? (r.pendiente.gt(0) ? qty(r.pendiente) : '—') : '—'}
+                    {/* `recibible`, no `pendiente`: B1 puede dejar el renglon
+                        abierto con su pendiente intacto despues de recibir todo
+                        —caso de la OC 1120— y entonces la fila decia "pedido 10,
+                        recibido 10, falta 10". Lo que falta es lo que todavia
+                        cabe recibir. */}
+                    <td className="cr-num" data-label="Falta">
+                      {r ? (r.recibible.gt(0) ? qty(r.recibible) : '—') : '—'}
                     </td>
                     <td data-label="Estado">
                       {estado ? (
                         <>
-                          <span className="ar-status" data-tone={estado.tone}>
+                          <span className="cr-status" data-tone={estado.tone}>
                             {estado.label}
                           </span>
                           {r && r.sinSurtir.gt(0) && (
-                            <div className="ar-small ar-muted">
+                            <div className="cr-small cr-muted">
                               no llegaran {qty(r.sinSurtir)}
                             </div>
                           )}
                           {r && r.excedente.gt(0) && (
-                            <div className="ar-small ar-muted">
+                            <div className="cr-small cr-muted">
                               {qty(r.excedente)} de mas
                             </div>
                           )}
                         </>
                       ) : (
-                        <span className="ar-muted">—</span>
+                        <span className="cr-muted">—</span>
                       )}
                     </td>
-                    <td className="ar-num" data-label="Precio">
+                    <td className="cr-num" data-label="Precio">
                       {money(l.UnitPrice ?? l.Price)}
                     </td>
-                    <td className="ar-num" data-label="Importe">
+                    <td className="cr-num" data-label="Importe">
                       {money(l.LineTotal)}
-                    </td>
-                    <td className="ar-num" data-label="IVA">
-                      {money(l.TaxTotal)}
                     </td>
                   </tr>
                 )
@@ -490,20 +558,23 @@ export default async function Page({ params }: Props) {
         )}
       </section>
 
-      {entregas.length > 0 && (
-        <section className="ar-section">
-          <span className="ar-eyebrow">
-            Entradas de mercancia <span className="ar-num">{recepcion?.entregas.length ?? 0}</span>
+      {/* SOLO CON VARIAS ENTRADAS. Con una sola, esta tabla no aportaba nada
+          que no estuviera ya en pantalla: el numero y la fecha titulan la
+          pagina, y la cantidad recibida esta en la tabla de lineas. Con varias
+          si dice algo —cual trajo que y cuando—, y entonces vuelve. */}
+      {entregas.length > 1 && (
+        <section className="cr-section">
+          <span className="cr-label">
+            Entradas de mercancia <span className="cr-num">{recepcion?.entregas.length ?? 0}</span>
           </span>
-          <div className="ar-table-scroll">
-          <table className="ar-table ar-table--stack">
+          <div className="cr-table-scroll">
+          <table className="cr-table cr-table--stack">
             <thead>
               <tr>
                 <th>Entrada</th>
                 <th>Fecha</th>
                 <th>Renglon</th>
-                <th>Articulo</th>
-                <th className="ar-num">Cantidad</th>
+                <th className="cr-num">Cantidad</th>
                 <th>Almacen</th>
               </tr>
             </thead>
@@ -512,17 +583,14 @@ export default async function Page({ params }: Props) {
                 const huerfana = !lineas.some((l) => l.LineNum === e.lineaOrden)
                 return (
                   <tr key={`${e.docEntry}-${e.lineaOrden}-${i}`}>
-                    <td className="ar-code" data-label="Entrada">
+                    <td className="cr-code" data-label="Entrada">
                       {e.docNum}
                     </td>
                     <td data-label="Fecha">{formatDate(e.fecha)}</td>
-                    <td className="ar-code" data-label="Renglon">
-                      {huerfana ? <span className="ar-muted">sin renglon</span> : e.lineaOrden}
+                    <td className="cr-code" data-label="Renglon">
+                      {huerfana ? <span className="cr-muted">sin renglon</span> : e.lineaOrden}
                     </td>
-                    <td className="ar-code" data-label="Articulo">
-                      {e.itemCode ?? '—'}
-                    </td>
-                    <td className="ar-num" data-label="Cantidad">
+                    <td className="cr-num" data-label="Cantidad">
                       {qty(e.cantidad)}
                     </td>
                     <td data-label="Almacen">{e.almacen ?? '—'}</td>
@@ -532,26 +600,21 @@ export default async function Page({ params }: Props) {
             </tbody>
           </table>
           </div>
-          <p className="ar-small ar-muted">
-            Cada renglon es una entrega registrada en Business One el dia que la mercancia entro al
-            almacen. Es la unica cifra que dice cuanto llego de verdad; las devoluciones posteriores
-            no se descuentan aqui.
-          </p>
         </section>
       )}
 
       {cargadas.length > 0 && (
-        <section className="ar-section">
-          <span className="ar-eyebrow">
-            Facturas ya cargadas <span className="ar-num">{cargadas.length}</span>
+        <section className="cr-section">
+          <span className="cr-label">
+            Facturas ya cargadas <span className="cr-num">{cargadas.length}</span>
           </span>
-          <table className="ar-table ar-table--stack">
+          <table className="cr-table cr-table--stack">
             <thead>
               <tr>
                 <th>Folio</th>
                 <th>Estatus</th>
-                <th className="ar-num">Importe</th>
-                <th className="ar-num">Queda por facturar</th>
+                <th className="cr-num">Importe</th>
+                <th className="cr-num">Queda por facturar</th>
                 <th>Archivo</th>
               </tr>
             </thead>
@@ -560,34 +623,38 @@ export default async function Page({ params }: Props) {
                 <td colSpan={3} data-label="Orden">
                   Total de la orden
                 </td>
-                <td className="ar-num" data-label="Queda por facturar">
+                <td className="cr-num" data-label="Queda por facturar">
                   {money(oc.DocTotal)} {moneda}
                 </td>
                 <td />
               </tr>
               {filas.map((f) => (
                 <tr key={f.folio}>
-                  <td className="ar-code" data-label="Folio">
+                  <td className="cr-code" data-label="Folio">
                     {f.folio}
                   </td>
-                  <td data-label="Estatus">{f.status}</td>
-                  <td className="ar-num" data-label="Importe">
+                  <td data-label="Estatus">
+                    <span className="cr-status" data-tone={ESTATUS_FACTURA[f.status]?.tone}>
+                      {ESTATUS_FACTURA[f.status]?.label ?? f.status}
+                    </span>
+                  </td>
+                  <td className="cr-num" data-label="Importe">
                     {f.descuenta ? `− ${money(f.importe)}` : money(f.importe)}
                   </td>
-                  <td className="ar-num" data-label="Queda por facturar">
+                  <td className="cr-num" data-label="Queda por facturar">
                     {f.descuenta ? (
                       money(f.saldo)
                     ) : (
-                      <span className="ar-muted">no descuenta</span>
+                      <span className="cr-muted">no descuenta</span>
                     )}
                   </td>
                   <td data-label="Archivo">
                     {f.xmlFileKey ? (
-                      <a className="ar-code" href={`/api/v1/documents/${f.xmlFileKey}`}>
+                      <a className="cr-code" href={`/api/v1/documents/${f.xmlFileKey}`}>
                         XML
                       </a>
                     ) : (
-                      <span className="ar-muted">sin XML</span>
+                      <span className="cr-muted">sin XML</span>
                     )}
                   </td>
                 </tr>
@@ -600,20 +667,21 @@ export default async function Page({ params }: Props) {
                       ? 'Falta por facturar'
                       : 'Se facturo de mas'}
                 </td>
-                <td className="ar-num" data-label="Queda por facturar">
+                <td className="cr-num" data-label="Queda por facturar">
                   {money(Math.abs(saldo))} {moneda}
                 </td>
                 <td />
               </tr>
             </tbody>
           </table>
-          <p className="ar-small ar-muted">
+          <p className="cr-small cr-muted">
             El saldo va por importe. El detalle por articulo —cuantas piezas faltan de cada linea—
             lo ve KPS al revisar la factura.
           </p>
         </section>
       )}
 
+      <div id="cargar-factura">
       <CargarXml
         docEntry={oc.DocEntry}
         docNum={String(oc.DocNum)}
@@ -621,10 +689,14 @@ export default async function Page({ params }: Props) {
         moneda={moneda}
         totalOc={oc.DocTotal}
         cancelada={oc.Cancelled === 'tYES'}
-        cerrada={oc.DocumentStatus !== 'bost_Open'}
         entradas={facturables.entradas}
         entradasTruncadas={facturables.truncado}
+        // `recepcion` cuenta TODAS las entregas, cerradas incluidas; `facturables`
+        // solo las que aun admiten factura. La diferencia entre las dos es lo que
+        // separa "no ha llegado nada" de "ya llego y ya se facturo".
+        algoRecibido={recepcion ? !recepcion.sinEntradas : false}
       />
+      </div>
     </>
   )
 }

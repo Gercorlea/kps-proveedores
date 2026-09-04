@@ -234,6 +234,73 @@ describe('calcularRecepcion', () => {
   })
 })
 
+/**
+ * `recibible` responde a una pregunta distinta de `pendiente`: no "que espera
+ * B1" sino "que aceptaria B1 si lo capturo ahora". Los casos vienen del error
+ * (81) de la orden 1120, donde las dos respuestas no coinciden.
+ */
+describe('recibible', () => {
+  it('no ofrece nada cuando la mercancia ya llego aunque B1 diga que sigue pendiente', () => {
+    const r = calcularRecepcion({
+      orden: [renglon({ lineNum: 0, pedido: 10, abierta: 10 })],
+      entradas: [entrada({ lineaOrden: 0, cantidad: 10 })],
+    })
+
+    // B1 se contradice: mantiene el renglon abierto y luego rechaza la entrada.
+    expect(r.renglones[0].pendiente.toString()).toBe('10')
+    expect(r.renglones[0].recibible.toString()).toBe('0')
+    expect(r.renglones[0].estado).toBe('COMPLETA')
+  })
+
+  it('ofrece lo que falta cuando la entrega va a medias', () => {
+    const r = calcularRecepcion({
+      orden: [renglon({ lineNum: 0, pedido: 100, abierta: 60 })],
+      entradas: [entrada({ lineaOrden: 0, cantidad: 40 })],
+    })
+
+    expect(r.renglones[0].recibible.toString()).toBe('60')
+  })
+
+  it('no ofrece nada en un renglon cerrado a mano aunque falten piezas', () => {
+    const r = calcularRecepcion({
+      orden: [renglon({ lineNum: 0, pedido: 4400, abierta: 0 })],
+      entradas: [entrada({ lineaOrden: 0, cantidad: 4141 })],
+    })
+
+    // Faltan 259, pero el renglon esta cerrado: B1 no admite mas entradas.
+    expect(r.renglones[0].sinSurtir.toString()).toBe('259')
+    expect(r.renglones[0].recibible.toString()).toBe('0')
+  })
+
+  it('no ofrece cantidades negativas cuando llego de mas', () => {
+    const r = calcularRecepcion({
+      orden: [renglon({ lineNum: 0, pedido: 1600, abierta: 358 })],
+      entradas: [entrada({ lineaOrden: 0, cantidad: 1700 })],
+    })
+
+    expect(r.renglones[0].excedente.toString()).toBe('100')
+    expect(r.renglones[0].recibible.toString()).toBe('0')
+  })
+
+  it('suma por orden solo lo que de verdad se puede capturar', () => {
+    const r = calcularRecepcion({
+      orden: [
+        // ya llego todo, pero B1 lo sigue reportando abierto
+        renglon({ lineNum: 0, pedido: 10, abierta: 10 }),
+        // a medias de verdad
+        renglon({ lineNum: 1, itemCode: 'PTMB0028', pedido: 25000, abierta: 20690 }),
+      ],
+      entradas: [
+        entrada({ lineaOrden: 0, cantidad: 10 }),
+        entrada({ lineaOrden: 1, itemCode: 'PTMB0028', cantidad: 4310, docEntry: 3, docNum: 276 }),
+      ],
+    })
+
+    expect(r.pendiente.toString()).toBe('20700')
+    expect(r.recibible.toString()).toBe('20690')
+  })
+})
+
 describe('renglonDesdeB1', () => {
   it('trata el pendiente ausente como cero en vez de reventar', () => {
     const l = renglonDesdeB1({

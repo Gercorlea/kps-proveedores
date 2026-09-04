@@ -218,21 +218,21 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
 
   if (hecho) {
     return (
-      <div className="ar-info" data-tone="ok">
-        <span className="ar-info__label">Entrada {hecho.docNum} registrada</span>
+      <div className="cr-info" data-tone="ok">
+        <span className="cr-info__label">Entrada {hecho.docNum} registrada</span>
         <p>
           Se registraron {hecho.lineas} {hecho.lineas === 1 ? 'renglón' : 'renglones'} contra la OC{' '}
           {docNum}. Business One ya descontó lo recibido, así que la orden puede facturarse.
         </p>
-        <div className="ar-btn-row" style={{ marginTop: 'var(--ar-s3)' }}>
-          <a href={`/ordenes/${poDocEntry}`} className="ar-btn" style={{ borderBottom: 0 }}>
+        <div className="cr-btn-row">
+          <a href={`/ordenes/${poDocEntry}`} className="cr-btn">
             Ver la orden
           </a>
           <a
             href="/entradas"
-            className="ar-btn"
+            className="cr-btn"
             data-variant="secondary"
-            style={{ borderBottom: 0 }}
+           
           >
             Registrar otra
           </a>
@@ -243,52 +243,52 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
 
   return (
     <form onSubmit={enviar}>
-      <section className="ar-section">
-        <span className="ar-eyebrow">Datos de la entrada</span>
-        <div className="ar-field-grid">
-          <div className="ar-field">
-            <label className="ar-field__label" htmlFor="fecha">
+      <section className="cr-section">
+        <span className="cr-label">Datos de la entrada</span>
+        <div className="cr-field-grid">
+          <div className="cr-field">
+            <label className="cr-field__label" htmlFor="fecha">
               Fecha de entrada
             </label>
             <input
               id="fecha"
-              className="ar-input"
+              className="cr-input"
               data-machine="true"
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
               required
             />
-            <div className="ar-field__help">El día que la mercancía entró al almacén.</div>
+            <div className="cr-field__help">El día que la mercancía entró al almacén.</div>
           </div>
-          <div className="ar-field">
-            <label className="ar-field__label" htmlFor="comentario">
+          <div className="cr-field">
+            <label className="cr-field__label" htmlFor="comentario">
               Comentario
             </label>
             <input
               id="comentario"
-              className="ar-input"
+              className="cr-input"
               type="text"
               maxLength={254}
               value={comentario}
               onChange={(e) => setComentario(e.target.value)}
               placeholder="Opcional"
             />
-            <div className="ar-field__help">Se guarda en el documento de Business One.</div>
+            <div className="cr-field__help">Se guarda en el documento de Business One.</div>
           </div>
         </div>
       </section>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Qué llegó</span>
+      <section className="cr-section">
+        <span className="cr-label">Qué llegó</span>
 
-        <div className="ar-btn-row" style={{ marginBottom: 'var(--ar-s4)' }}>
-          <button type="button" className="ar-btn" data-variant="secondary" onClick={llenarTodo}>
+        <div className="cr-btn-row cr-mb-4">
+          <button type="button" className="cr-btn" data-variant="secondary" onClick={llenarTodo}>
             Llegó todo lo pendiente
           </button>
           <button
             type="button"
-            className="ar-btn"
+            className="cr-btn"
             data-variant="ghost"
             onClick={() => setCantidades({})}
           >
@@ -296,15 +296,15 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
           </button>
         </div>
 
-        <table className="ar-table ar-table--stack">
+        <table className="cr-table cr-table--stack">
           <thead>
             <tr>
               <th>#</th>
               <th>Artículo</th>
               <th>Descripción</th>
-              <th className="ar-num">Pedido</th>
-              <th className="ar-num">Pendiente</th>
-              <th className="ar-num">Llegó</th>
+              <th className="cr-num">Pedido</th>
+              <th className="cr-num">Pendiente</th>
+              <th className="cr-num">Llegó</th>
             </tr>
           </thead>
           <tbody>
@@ -313,34 +313,33 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
               const excede = valor !== '' && Number(valor) > r.pendiente
               return (
                 <tr key={r.lineNum}>
-                  <td className="ar-code" data-label="#">
+                  <td className="cr-code" data-label="#">
                     {r.lineNum}
                   </td>
-                  <td className="ar-code" data-label="Artículo">
+                  <td className="cr-code" data-label="Artículo">
                     {r.itemCode ?? '—'}
                   </td>
                   <td data-label="Descripción">{r.descripcion}</td>
-                  <td className="ar-num" data-label="Pedido">
+                  <td className="cr-num" data-label="Pedido">
                     {numero.format(r.pedido)}
                     {r.unidad ? ` ${r.unidad}` : ''}
                   </td>
-                  <td className="ar-num" data-label="Pendiente">
+                  <td className="cr-num" data-label="Pendiente">
                     {r.pendiente > 0 ? (
                       numero.format(r.pendiente)
                     ) : (
-                      <span className="ar-muted">—</span>
+                      <span className="cr-muted">—</span>
                     )}
                   </td>
-                  <td className="ar-num" data-label="Llegó">
+                  <td className="cr-num" data-label="Llegó">
                     <input
-                      className="ar-input"
+                      className="cr-input cr-input--num"
                       data-machine="true"
                       type="number"
                       min={0}
                       max={r.pendiente}
                       step="0.001"
                       inputMode="decimal"
-                      style={{ maxWidth: 120, textAlign: 'right' }}
                       value={valor}
                       disabled={r.pendiente <= 0}
                       aria-invalid={excede || undefined}
@@ -370,11 +369,11 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
             const cuadra = Math.abs(suma - recibido) < 0.0005
 
             return (
-              <div key={`lotes-${r.lineNum}`} className="ar-field" style={{ marginTop: 20 }}>
-                <label className="ar-field__label">
+              <div key={`lotes-${r.lineNum}`} className="cr-field cr-mt-5">
+                <label className="cr-field__label">
                   Lotes de {r.itemCode ?? `renglón ${r.lineNum}`}
                 </label>
-                <p className="ar-small ar-muted" style={{ marginTop: 0 }}>
+                <p className="cr-small cr-muted cr-mt-0">
                   {r.descripcion}. Business One no admite recibir este artículo sin decir qué lote
                   entró. Si llegaron varios, añade un renglón por cada uno: las cantidades tienen
                   que sumar {numero.format(recibido)}.
@@ -383,10 +382,10 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
                 {mios.map((l, i) => (
                   <div
                     key={l.id}
-                    style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}
+                    className="cr-row cr-mb-2"
                   >
                     <input
-                      className="ar-input"
+                      className="cr-input"
                       style={{ flex: '2 1 160px' }}
                       placeholder="Número de lote"
                       value={l.numero}
@@ -394,20 +393,22 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
                       onChange={(e) => cambiarLote(r.lineNum, l.id, { numero: e.target.value })}
                     />
                     <input
-                      className="ar-input"
+                      className="cr-input cr-right"
                       data-machine="true"
                       type="number"
                       min={0}
                       step="0.001"
                       inputMode="decimal"
-                      style={{ flex: '1 1 100px', textAlign: 'right' }}
+                      // Proporcion de esta fila concreta, no del sistema: los
+                      // tres campos del lote reparten el ancho entre ellos.
+                      style={{ flex: '1 1 100px' }}
                       placeholder="Cantidad"
                       value={l.cantidad}
                       aria-label={`Cantidad del lote ${i + 1} de ${r.descripcion}`}
                       onChange={(e) => cambiarLote(r.lineNum, l.id, { cantidad: e.target.value })}
                     />
                     <input
-                      className="ar-input"
+                      className="cr-input"
                       data-machine="true"
                       type="date"
                       style={{ flex: '1 1 150px' }}
@@ -417,7 +418,7 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
                     />
                     <button
                       type="button"
-                      className="ar-btn"
+                      className="cr-btn"
                       data-variant="secondary"
                       onClick={() => quitarLote(r.lineNum, l.id)}
                       aria-label={`Quitar el lote ${i + 1} de ${r.descripcion}`}
@@ -429,7 +430,7 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
 
                 <button
                   type="button"
-                  className="ar-btn"
+                  className="cr-btn"
                   data-variant="secondary"
                   onClick={() => agregarLote(r.lineNum, recibido - suma)}
                 >
@@ -437,7 +438,7 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
                 </button>
 
                 {mios.length > 0 && (
-                  <p className="ar-small" data-tone={cuadra ? undefined : 'danger'}>
+                  <p className="cr-small" data-tone={cuadra ? undefined : 'danger'}>
                     {cuadra
                       ? `Los lotes suman ${numero.format(suma)}, que es lo recibido.`
                       : `Los lotes suman ${numero.format(suma)} y recibiste ${numero.format(recibido)}. Faltan ${numero.format(recibido - suma)}.`}
@@ -449,10 +450,10 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
       </section>
 
       {problemas.length > 0 && (
-        <div className="ar-info" data-tone="danger">
-          <span className="ar-info__label">Revisa las cantidades</span>
+        <div className="cr-info" data-tone="danger">
+          <span className="cr-info__label">Revisa las cantidades</span>
           {problemas.map((p) => (
-            <p key={p} className="ar-small">
+            <p key={p} className="cr-small">
               {p}
             </p>
           ))}
@@ -460,25 +461,25 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
       )}
 
       {error && (
-        <div className="ar-info" data-tone="danger" role="alert">
-          <span className="ar-info__label">No se pudo registrar la entrada</span>
+        <div className="cr-info" data-tone="danger" role="alert">
+          <span className="cr-info__label">No se pudo registrar la entrada</span>
           <p>{error}</p>
         </div>
       )}
 
-      <div className="ar-btn-row">
-        <button type="submit" className="ar-btn" disabled={!puedeEnviar}>
+      <div className="cr-btn-row">
+        <button type="submit" className="cr-btn" disabled={!puedeEnviar}>
           {enviando ? 'Registrando...' : 'Registrar entrada'}
         </button>
         <a
           href={`/ordenes/${poDocEntry}`}
-          className="ar-btn"
+          className="cr-btn"
           data-variant="secondary"
-          style={{ borderBottom: 0 }}
+         
         >
           Cancelar
         </a>
-        <span className="ar-small ar-muted">
+        <span className="cr-small cr-muted">
           {conCantidad.length === 0
             ? 'Captura al menos un renglón.'
             : `${conCantidad.length} ${conCantidad.length === 1 ? 'renglón' : 'renglones'} · ${cardCode}${cardName ? ` · ${cardName}` : ''}`}

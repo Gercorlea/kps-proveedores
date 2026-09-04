@@ -353,6 +353,7 @@ export function matchInvoice(input: MatchInput, options: MatchOptions): MatchRes
       currency: poCurrency,
       requiresCreditNote,
       pendingAmount,
+      diferenciasDeLinea: differences.length,
     }),
   }
 }
@@ -363,8 +364,17 @@ function buildSummary(args: {
   currency: string
   requiresCreditNote: boolean
   pendingAmount: Decimal | null
+  /** Cuantas diferencias por renglon encontro el cotejo. */
+  diferenciasDeLinea: number
 }): string {
-  const { outcome, totalDifference, currency, requiresCreditNote, pendingAmount } = args
+  const {
+    outcome,
+    totalDifference,
+    currency,
+    requiresCreditNote,
+    pendingAmount,
+    diferenciasDeLinea,
+  } = args
 
   if (outcome === MatchOutcome.COINCIDE) {
     return 'Tu factura coincide con la entrada de mercancia.'
@@ -374,6 +384,17 @@ function buildSummary(args: {
   }
   if (pendingAmount) {
     return `Tu factura queda por debajo de lo recibido en ${formatMoney(pendingAmount, currency)}. La entrada conserva ese saldo por facturar.`
+  }
+  // LOS RENGLONES PUEDEN NO CUADRAR CON EL TOTAL CUADRADO. Un precio unitario
+  // mas bajo con una cantidad mas alta da el mismo importe, y entonces la
+  // diferencia del documento es cero. Citarla —"hay una diferencia de USD
+  // 0.00"— dejaba un mensaje que se contradecia solo y mandaba al proveedor a
+  // buscar un descuadre de importe que no existe: lo que no cuadra son los
+  // renglones.
+  if (totalDifference.isZero()) {
+    return diferenciasDeLinea === 1
+      ? 'El total de tu factura coincide con el de la entrada, pero un renglon no: la diferencia se compensa dentro del documento.'
+      : `El total de tu factura coincide con el de la entrada, pero ${diferenciasDeLinea} renglones no: las diferencias se compensan entre si dentro del documento.`
   }
   return `Hay una diferencia de ${formatMoney(totalDifference.abs(), currency)} entre tu factura y la entrada.`
 }

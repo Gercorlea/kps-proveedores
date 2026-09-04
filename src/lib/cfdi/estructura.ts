@@ -69,7 +69,6 @@ const TIPOS_FACTOR = new Set(['Tasa', 'Cuota', 'Exento'])
 /** Tasas de IVA que existen en Mexico. La franja fronteriza usa el 8%. */
 const TASAS_IVA = ['0', '0.08', '0.16']
 
-const UUID_PATTERN = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i
 const CP_PATTERN = /^\d{5}$/
 
 /**
@@ -96,13 +95,11 @@ export function revisarEstructura(cfdi: ParsedCfdi): ProblemaEstructura[] {
   }
 
   // --- Identificadores y patrones ----------------------------------------
-  if (!UUID_PATTERN.test(cfdi.timbre.uuid)) {
-    bloqueo(
-      'ESTRUCTURA_UUID',
-      `El folio fiscal "${cfdi.timbre.uuid}" no tiene la forma de un UUID (8-4-4-4-12). Un timbre del SAT siempre la tiene.`,
-    )
-  }
-
+  // El UUID no se comprueba aqui: lo hace `parseCfdi`, que revienta con
+  // UUID_INVALIDO antes de construir el ParsedCfdi. Repetirlo seria codigo
+  // muerto, y ademas peor colocado: estas reglas se apagan con
+  // CFDI_VERIFICAR_ESTRUCTURA y la identidad del documento no puede depender de
+  // una bandera.
   if (!RFC_PATTERN.test(cfdi.emisor.rfc.toUpperCase())) {
     bloqueo('ESTRUCTURA_RFC_EMISOR', `"${cfdi.emisor.rfc}" no tiene formato de RFC.`)
   }

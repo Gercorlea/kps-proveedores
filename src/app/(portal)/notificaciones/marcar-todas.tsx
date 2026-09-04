@@ -32,7 +32,7 @@ export default function MarcarTodas() {
   }
 
   return (
-    <button type="button" className="ar-btn" onClick={() => void marcar()} disabled={enviando}>
+    <button type="button" className="cr-btn" onClick={() => void marcar()} disabled={enviando}>
       {enviando ? 'Marcando…' : 'Marcar todas como leidas'}
     </button>
   )

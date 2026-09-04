@@ -261,14 +261,37 @@ function parseImpuestos(comprobante: unknown): CfdiImpuestos {
   }
 }
 
+/**
+ * Forma del folio fiscal: 8-4-4-4-12 en hexadecimal.
+ *
+ * Se comprueba AQUI, al leer, y no entre las reglas de estructura, porque el
+ * UUID no es un dato mas del comprobante: es su identidad. Lleva el indice unico
+ * de `invoices.uuid` —la unica defensa contra cargar dos veces la misma
+ * factura— y es la llave con la que un complemento de pago encuentra a que
+ * factura salda. Un folio con basura entra a las dos cosas como si fuera bueno.
+ *
+ * Las reglas de estructura no sirven para esto porque son opcionales:
+ * `CFDI_VERIFICAR_ESTRUCTURA=false` las apaga enteras, y apagar la validacion de
+ * catalogos del SAT no deberia apagar tambien la identidad del documento.
+ */
+const UUID_PATTERN = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i
+
 function parseTimbre(comprobante: unknown): CfdiTimbre {
   // El timbre vive en `Complemento > TimbreFiscalDigital`. Complemento puede
   // traer varios hijos (nomina, pagos, comercio exterior) y repetirse.
   for (const complemento of asArray(child(comprobante, 'Complemento'))) {
     const timbre = child(complemento, 'TimbreFiscalDigital')
     if (timbre !== undefined) {
+      const uuid = requiredAttr(timbre, 'UUID', 'TimbreFiscalDigital').toUpperCase()
+      if (!UUID_PATTERN.test(uuid)) {
+        throw new CfdiParseError(
+          'UUID_INVALIDO',
+          `El folio fiscal "${uuid}" no tiene forma de UUID (8-4-4-4-12 en hexadecimal). Un timbre del SAT siempre la tiene, asi que este XML no lo timbro un PAC o llego alterado.`,
+          { attribute: 'UUID', context: 'TimbreFiscalDigital', raw: uuid },
+        )
+      }
       return {
-        uuid: requiredAttr(timbre, 'UUID', 'TimbreFiscalDigital').toUpperCase(),
+        uuid,
         fechaTimbrado: requiredDateAttr(timbre, 'FechaTimbrado', 'TimbreFiscalDigital'),
         noCertificadoSAT: requiredAttr(timbre, 'NoCertificadoSAT', 'TimbreFiscalDigital'),
         selloSAT: requiredAttr(timbre, 'SelloSAT', 'TimbreFiscalDigital'),

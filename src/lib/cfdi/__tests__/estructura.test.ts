@@ -138,17 +138,6 @@ describe('revisarEstructura — reglas cruzadas de CFDI 4.0', () => {
     ).toContain('ESTRUCTURA_DOMICILIO_RECEPTOR')
   })
 
-  it('rechaza un folio fiscal que no tiene forma de UUID', () => {
-    expect(
-      reglasTras((x) =>
-        x.replace(
-          'UUID="a1b2c3d4-1111-2222-3333-444455556666"',
-          'UUID="1013P006-A311-4B00-9C13-000000000311"',
-        ),
-      ),
-    ).toContain('ESTRUCTURA_UUID')
-  })
-
   it('avisa de un UsoCFDI que no esta en el catalogo', () => {
     expect(reglasTras((x) => x.replace('UsoCFDI="G03"', 'UsoCFDI="ZZ9"'))).toContain(
       'ESTRUCTURA_USO_CFDI',

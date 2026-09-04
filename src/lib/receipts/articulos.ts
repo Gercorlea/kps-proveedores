@@ -47,13 +47,19 @@ export function sePuedeCapturar(r: RestriccionArticulo): boolean {
   return r.inventariable && !r.serie
 }
 
-/** El motivo, en palabras, o null si no hay ninguno. */
+/**
+ * El motivo, en palabras, o null si no hay ninguno.
+ *
+ * Solo el motivo: que hacer al respecto lo dice la pantalla una vez, debajo de
+ * la lista. Repetirlo en cada renglon daba tres veces "registralo en Business
+ * One" para una orden con tres articulos malos.
+ */
 export function motivoDeNoCaptura(r: RestriccionArticulo): string | null {
   if (!r.inventariable) {
-    return `${r.itemCode} no es un articulo de inventario: no tiene almacen ni cuentas donde registrarse, asi que Business One no admite recibirlo por una entrada de mercancia. Ese renglon se factura sin entrada, y hay que registrarlo directamente en Business One.`
+    return `${r.itemCode} no es artículo de inventario. Business One no lo admite en una entrada de mercancía, y ese renglón se factura sin ella.`
   }
   if (r.serie) {
-    return `${r.itemCode} se maneja por numero de serie, y esta pantalla todavia no los captura. Registra esa entrada directamente en Business One.`
+    return `${r.itemCode} se maneja por número de serie, y esta pantalla todavía no los captura.`
   }
   return null
 }

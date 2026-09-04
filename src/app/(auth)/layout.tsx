@@ -1,23 +1,41 @@
+import Image from 'next/image'
+
 /**
  * Layout de las pantallas de acceso.
  *
- * Panel centrado sobre lienzo gris, igual que el de kps-dashboard: el isotipo
- * va en tinta porque la tarjeta es blanca. Vive fuera del grupo (portal), asi
- * que no arrastra la barra lateral — nadie navega el portal antes de entrar.
+ * Tarjeta centrada sobre lienzo BLANCO: en una pantalla que solo tiene una
+ * tarjeta no hay contenido alrededor del que separarla, asi que tenir el fondo
+ * solo ensucia el unico elemento que importa.
+ *
+ * Vive fuera del grupo (portal), asi que no arrastra la barra lateral: nadie
+ * navega el portal antes de entrar.
+ *
+ * EL LOGOTIPO YA VIENE EN BANNER. El PNG es de 431x150 —2.87:1— y esta recortado
+ * a la tinta: no lleva margen propio. Antes era un tile de 200x200 con la marca
+ * flotando en medio y habia que recortarlo a 3:1 con `object-fit: cover`; ese
+ * recorte ahora sobra y ademas se comeria las letras, porque no queda aire que
+ * sacrificar. Se deja correr la proporcion natural con `height: auto`.
+ *
+ * El aire lo pone el CSS, no el archivo: con margen dentro del PNG el padding se
+ * aplicaria dos veces y la marca encogeria.
  */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="au-canvas">
-      <div className="ar-card au-card">
-        <div className="au-brand">
-          <svg width="30" height="30" viewBox="0 0 14 14" aria-hidden="true">
-            <path d="M7 1 13 12.5H1Z" fill="currentColor" />
-          </svg>
-          <span className="au-word">Arcanum</span>
-          <span className="ar-eyebrow" style={{ margin: 0 }}>
-            Portal de Proveedores KPS
-          </span>
-        </div>
+      <div className="cr-card au-card">
+        <Image
+          className="au-logo"
+          src="/group-kps.png"
+          alt="Group KPS"
+          width={431}
+          height={150}
+          priority
+        />
+        {/* Eyebrow sobre el titulo, que es el sitio que el sistema le da a este
+            tipo de rotulo: dice DONDE estas, y "Iniciar sesion" dice que vas a
+            hacer. Los dos hacen falta y no compiten porque estan en escalones
+            distintos —mono de 9.5px contra los 26px del titulo—. */}
+        <p className="cr-label au-eyebrow">Portal de Proveedores</p>
         {children}
       </div>
 
@@ -27,27 +45,24 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           min-height: 100dvh;
           align-items: center;
           justify-content: center;
-          padding: var(--ar-s4);
-          background: var(--ar-canvas);
+          padding: var(--cr-s4);
+          background: var(--cr-bg);
         }
+        /* 448px, como el max-w-md de la referencia. A 384px los dos campos y el
+           boton quedaban apretados contra los bordes de la tarjeta. */
         .au-card {
           width: 100%;
-          max-width: 384px;
-          padding: var(--ar-s8);
+          max-width: 448px;
+          padding: var(--cr-s8);
         }
-        .au-brand {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: var(--ar-s2);
-          margin-bottom: var(--ar-s6);
-          color: var(--ar-ink);
+        .au-logo {
+          display: block;
+          width: 100%;
+          max-width: 240px;
+          height: auto;
+          margin: 0 auto var(--cr-s4);
         }
-        .au-word {
-          font-size: 15px;
-          font-weight: 600;
-          letter-spacing: 0.02em;
-        }
+        .au-eyebrow { text-align: center; margin-bottom: var(--cr-s1); }
       `}</style>
     </div>
   )

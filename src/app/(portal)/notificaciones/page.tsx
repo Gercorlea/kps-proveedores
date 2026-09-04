@@ -26,8 +26,8 @@ export default async function Page() {
 
   if (!session?.supplierCode) {
     return (
-      <div className="ar-info">
-        <span className="ar-info__label">Sin avisos</span>
+      <div className="cr-info">
+        <span className="cr-info__label">Sin avisos</span>
         <p>
           Los avisos son de un proveedor, y tu cuenta no esta vinculada a ninguno. Si eres personal
           de KPS, la bandeja de peticiones esta en el dashboard.
@@ -56,8 +56,8 @@ export default async function Page() {
     noLeidos = lista.noLeidos
   } catch {
     return (
-      <div className="ar-info" data-tone="danger">
-        <span className="ar-info__label">No se pudieron leer tus avisos</span>
+      <div className="cr-info" data-tone="danger">
+        <span className="cr-info__label">No se pudieron leer tus avisos</span>
         <p>Vuelve a intentarlo en un momento; si sigue igual, avisa a KPS.</p>
       </div>
     )
@@ -65,49 +65,49 @@ export default async function Page() {
 
   return (
     <>
-      <div className="ar-page-head">
+      <div className="cr-page-head">
         <div>
           <h1>Avisos</h1>
-          <p className="ar-lead" style={{ marginBottom: 0 }}>
+          <p className="cr-lead cr-flush">
             {noLeidos > 0
               ? `${noLeidos} sin leer de ${avisos.length}`
               : 'Todo lo que KPS ha decidido sobre tus facturas.'}
           </p>
         </div>
         {noLeidos > 0 && (
-          <div className="ar-page-head__meta">
+          <div className="cr-page-head__meta">
             <MarcarTodas />
           </div>
         )}
       </div>
 
       {avisos.length === 0 ? (
-        <div className="ar-empty">
-          <div className="ar-empty__title">No tienes avisos.</div>
-          <p className="ar-small">Aqui salen las decisiones de KPS sobre tus facturas.</p>
+        <div className="cr-empty">
+          <div className="cr-empty__title">No tienes avisos.</div>
+          <p className="cr-small">Aqui salen las decisiones de KPS sobre tus facturas.</p>
         </div>
       ) : (
-        <section className="ar-section">
+        <section className="cr-section">
           <ul className="av-lista">
             {avisos.map((a) => (
-              <li key={a.id} className="ar-card av-item" data-nuevo={a.leido ? undefined : 'si'}>
+              <li key={a.id} className="cr-card av-item" data-nuevo={a.leido ? undefined : 'si'}>
                 <div className="av-item__cabeza">
-                  <span className="ar-status" data-tone={a.tono ?? undefined}>
+                  <span className="cr-status" data-tone={a.tono ?? undefined}>
                     {a.titulo}
                   </span>
-                  <span className="ar-small ar-muted">{fechaHora(a.cuando)}</span>
+                  <span className="cr-small cr-muted">{fechaHora(a.cuando)}</span>
                 </div>
                 <p className="av-item__texto">{a.mensaje}</p>
                 <div className="av-item__pie">
-                  <span className="ar-small ar-muted ar-mono">{a.folio}</span>
+                  <span className="cr-small cr-muted cr-mono">{a.folio}</span>
                   {a.facturaFolio && (
-                    <span className="ar-small ar-muted">
-                      <span className="ar-mono">{a.facturaFolio}</span>
+                    <span className="cr-small cr-muted">
+                      <span className="cr-mono">{a.facturaFolio}</span>
                       {a.ordenCompra ? ` · OC ${a.ordenCompra}` : ''}
                     </span>
                   )}
                   {a.link && (
-                    <a href={a.link} className="ar-small">
+                    <a href={a.link} className="cr-small">
                       Ver la factura
                     </a>
                   )}
@@ -119,22 +119,22 @@ export default async function Page() {
       )}
 
       <style>{`
-        .av-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--ar-s3); }
-        .av-item { padding: var(--ar-s4); }
+        .av-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--cr-s3); }
+        .av-item { padding: var(--cr-s4); }
         /* Misma marca que en la campana: barra a la izquierda para el no leido. */
-        .av-item[data-nuevo='si'] { box-shadow: inset 3px 0 0 var(--ar-accent); }
+        .av-item[data-nuevo='si'] { box-shadow: inset 3px 0 0 var(--cr-accent); }
         .av-item__cabeza {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: var(--ar-s3);
+          gap: var(--cr-s3);
           flex-wrap: wrap;
         }
-        .av-item__texto { margin: var(--ar-s2) 0; font-size: 13px; }
+        .av-item__texto { margin: var(--cr-s2) 0; font-size: 13px; }
         .av-item__pie {
           display: flex;
           align-items: center;
-          gap: var(--ar-s3);
+          gap: var(--cr-s3);
           flex-wrap: wrap;
         }
       `}</style>

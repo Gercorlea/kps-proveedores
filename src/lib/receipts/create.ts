@@ -3,6 +3,8 @@ import type { SessionPayload } from '../auth/session'
 import { Decimal, moneyOrZero, round3 } from '../money'
 import { auditLog } from '../mongo'
 import { getSapClient, SapError } from '../sap'
+import { calcularRecepcion, renglonDesdeB1 } from '../matching/recepciones'
+import { leerEntradasDeOrdenes } from '../sap/entradas'
 import { leerRestricciones } from './articulos'
 import { B1_OBJECT_TYPE, type B1PurchaseOrder } from '../sap/types'
 
@@ -147,6 +149,35 @@ function pendienteDe(linea: { Quantity: number; RemainingOpenQuantity?: number |
   return moneyOrZero(abierta)
 }
 
+/**
+ * Cuanto admite B1 todavia en cada renglon, por numero de renglon.
+ *
+ * `RemainingOpenQuantity` no basta: en la orden 1120 B1 lo devuelve en 10 con el
+ * renglon abierto aunque esas 10 ya se recibieron, y luego rechaza la entrada
+ * con el error (81) de tolerancia. Cruzar con las entradas ya registradas da el
+ * limite que B1 va a aplicar de verdad, y permite negarlo aqui con un mensaje
+ * que se entiende en vez de dejar salir el de HANA en crudo.
+ *
+ * Devuelve un mapa vacio si B1 no contesta: se cae a `pendienteDe`, que es el
+ * limite mas permisivo. Quedarse sin este dato no puede bloquear una captura
+ * legitima, porque B1 sigue teniendo la ultima palabra al crear.
+ */
+async function limitesReales(oc: B1PurchaseOrder): Promise<Map<number, Decimal>> {
+  try {
+    const { porOrden } = await leerEntradasDeOrdenes({
+      ordenes: [{ DocEntry: oc.DocEntry, DocDate: oc.DocDate }],
+      cardCode: oc.CardCode,
+    })
+    const recepcion = calcularRecepcion({
+      orden: (oc.DocumentLines ?? []).map(renglonDesdeB1),
+      entradas: porOrden.get(oc.DocEntry) ?? [],
+    })
+    return new Map(recepcion.renglones.map((r) => [r.lineNum, r.recibible]))
+  } catch {
+    return new Map()
+  }
+}
+
 export async function leerOrdenParaEntrada(poDocEntry: number): Promise<B1PurchaseOrder> {
   let oc: B1PurchaseOrder | null
   try {
@@ -203,6 +234,13 @@ function hoy(): string {
  * no es un fallo del portal y deja de reintentar.
  */
 function explicarRechazo(mensaje: string): string {
+  // (81) es la tolerancia de cantidad: B1 dice que la entrada recibe mas de lo
+  // que el renglon admite. El guard de `limitesReales` lo atrapa antes, pero si
+  // la lectura de entradas fallo el rechazo llega hasta aqui, y en crudo dice
+  // "Quantity falls into negative inventory" sin nombrar el renglon.
+  if (/\(81\)|negative inventory|tolerance/i.test(mensaje)) {
+    return `Business One rechazo la entrada porque alguno de los renglones ya tiene toda su mercancia recibida, aunque la orden lo siga mostrando abierto. Revisa las entregas ya registradas de esta orden antes de volver a capturar. (Respuesta de SAP: "${mensaje}")`
+  }
   if (/batch|serial/i.test(mensaje)) {
     return `Business One no acepto la identificacion de lotes o numeros de serie de esta entrada. Suele ser una de dos: el articulo se maneja por NUMERO DE SERIE —que esta pantalla todavia no captura— o el almacen exige indicar la ubicacion y no se pudo resolver. Registra esa entrada directamente en Business One. (Respuesta de SAP: "${mensaje}")`
   }
@@ -216,6 +254,7 @@ export async function crearEntradaDeMercancia(datos: DatosEntrada): Promise<Resu
   comprobarOrdenAbierta(oc)
 
   const renglones = oc.DocumentLines ?? []
+  const limites = await limitesReales(oc)
 
   // Los ceros se descartan aqui y no en la pantalla: el formulario manda todos
   // los renglones y B1 rechaza una linea en cero. Descartarlos sin comprobar que
@@ -249,13 +288,20 @@ export async function crearEntradaDeMercancia(datos: DatosEntrada): Promise<Resu
     }
 
     const cantidad = round3(moneyOrZero(linea.cantidad))
-    const pendiente = pendienteDe(renglon)
+    // El limite real cruza lo abierto en B1 con lo que ya entro al almacen. Solo
+    // se cae al campo crudo cuando no se pudieron leer las entradas.
+    const pendiente = limites.get(linea.lineNum) ?? pendienteDe(renglon)
     if (cantidad.gt(pendiente)) {
       const descripcion = renglon.ItemDescription ?? renglon.ItemCode ?? `renglon ${linea.lineNum}`
+      // Con el limite en cero el renglon ya esta surtido. Decir "solo quedan 0
+      // pendientes" sonaria a fallo del portal cuando lo que pasa es que no hay
+      // nada que recibir, asi que ese caso se explica aparte.
       throw new ReceiptError(
         RECEIPT_ERROR.EXCEDE_PENDIENTE,
         422,
-        `En "${descripcion}" capturaste ${cantidad.toString()} pero solo quedan ${pendiente.toString()} pendientes. Business One no admite recibir por encima de lo abierto.`,
+        pendiente.lte(0)
+          ? `En "${descripcion}" ya se recibio todo lo que pedia la OC ${oc.DocNum}. Business One no admite otra entrada contra ese renglon, aunque siga apareciendo abierto. Si de verdad llego mas mercancia, hay que ampliar la orden en Business One.`
+          : `En "${descripcion}" capturaste ${cantidad.toString()} pero solo quedan ${pendiente.toString()} pendientes. Business One no admite recibir por encima de lo abierto.`,
       )
     }
 

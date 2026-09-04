@@ -17,8 +17,8 @@ export default async function Page() {
   const session = await getSession()
   if (!session) {
     return (
-      <div className="ar-info" data-tone="danger">
-        <span className="ar-info__label">Sin sesion</span>
+      <div className="cr-info" data-tone="danger">
+        <span className="cr-info__label">Sin sesion</span>
         <p>Vuelve a entrar para cargar una factura.</p>
       </div>
     )
@@ -31,8 +31,8 @@ export default async function Page() {
   // un proveedor cuya lectura fallo, donde reintentar si tiene sentido.
   if (!proveedor) {
     return (
-      <div className="ar-info" data-tone="danger">
-        <span className="ar-info__label">No se pudo abrir la carga de facturas</span>
+      <div className="cr-info" data-tone="danger">
+        <span className="cr-info__label">No se pudo abrir la carga de facturas</span>
         <p>
           {session.supplierCode
             ? `Tu cuenta apunta al proveedor ${session.supplierCode}, pero el portal no pudo leer sus datos. Vuelve a intentarlo; si sigue igual, avisa a KPS.`
@@ -44,13 +44,13 @@ export default async function Page() {
 
   if (proveedor.bloqueado) {
     return (
-      <div className="ar-info" data-tone="danger">
-        <span className="ar-info__label">Tu cuenta esta retenida</span>
+      <div className="cr-info" data-tone="danger">
+        <span className="cr-info__label">Tu cuenta esta retenida</span>
         <p>
           {proveedor.motivoBloqueo ??
             'KPS retuvo tu cuenta y mientras siga asi no se admiten facturas nuevas.'}
         </p>
-        <p className="ar-small">
+        <p className="cr-small">
           La retencion detiene el proceso, no lo cancela: en cuanto se resuelva vas a poder cargar
           con normalidad.
         </p>

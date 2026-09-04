@@ -9,23 +9,23 @@ export default function Page() {
 
   return (
     <>
-      <div className="ar-page-head">
+      <div className="cr-page-head">
         <div>
           <h1>Pagos</h1>
-          <p className="ar-lead" style={{ marginBottom: 0 }}>
+          <p className="cr-lead cr-flush">
             {pagadas.length} facturas pagadas · {porCobrar.length} en proceso de cobro
           </p>
         </div>
-        <div className="ar-page-head__meta">
-          <span className="ar-meta">Proveedor · P-10442</span>
+        <div className="cr-page-head__meta">
+          <span className="cr-meta">Proveedor · P-10442</span>
           <br />
-          <span className="ar-meta">Datos de muestra</span>
+          <span className="cr-meta">Datos de muestra</span>
         </div>
       </div>
 
       {/* §08 nota de diseno: el estatus de pago lo captura KPS a mano en el MVP. */}
-      <div className="ar-info">
-        <span className="ar-info__label">Como se actualiza esta pantalla</span>
+      <div className="cr-info">
+        <span className="cr-info__label">Como se actualiza esta pantalla</span>
         <p>
           KPS paga fuera del portal y despues marca la factura como pagada. Por eso puede haber unas
           horas entre que recibes la transferencia y que aparece aqui. Si ya cobraste y sigue sin
@@ -34,39 +34,39 @@ export default function Page() {
         </p>
       </div>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Pagadas</span>
+      <section className="cr-section">
+        <span className="cr-label">Pagadas</span>
         {pagadas.length === 0 ? (
-          <div className="ar-empty">
-            <div className="ar-empty__title">Todavia no tienes pagos registrados.</div>
+          <div className="cr-empty">
+            <div className="cr-empty__title">Todavia no tienes pagos registrados.</div>
           </div>
         ) : (
-          <table className="ar-table ar-table--stack">
+          <table className="cr-table cr-table--stack">
             <thead>
               <tr>
                 <th>Folio</th>
                 <th>Tipo</th>
-                <th className="ar-num">Monto</th>
+                <th className="cr-num">Monto</th>
                 <th>Recibo</th>
-                <th className="ar-num">Fecha</th>
+                <th className="cr-num">Fecha</th>
               </tr>
             </thead>
             <tbody>
               {pagadas.map((f) => (
                 <tr key={f.id}>
-                  <td className="ar-code" data-label="Folio">
+                  <td className="cr-code" data-label="Folio">
                     <a href={`/facturas/${f.id}`}>{f.folio}</a>
                   </td>
                   <td data-label="Tipo">{f.tipo}</td>
-                  <td className="ar-num" data-label="Monto">
+                  <td className="cr-num" data-label="Monto">
                     {f.total}
                   </td>
                   <td data-label="Recibo">
-                    <span className="ar-status" data-tone={f.estatus === 'CERRADA' ? 'ok' : 'warn'}>
+                    <span className="cr-status" data-tone={f.estatus === 'CERRADA' ? 'ok' : 'warn'}>
                       {f.estatus === 'CERRADA' ? 'Registrado' : 'Pendiente'}
                     </span>
                   </td>
-                  <td className="ar-num" data-label="Fecha">
+                  <td className="cr-num" data-label="Fecha">
                     {f.fecha}
                   </td>
                 </tr>
@@ -76,31 +76,31 @@ export default function Page() {
         )}
       </section>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">En proceso de cobro</span>
+      <section className="cr-section">
+        <span className="cr-label">En proceso de cobro</span>
         {porCobrar.length === 0 ? (
-          <div className="ar-empty">
-            <div className="ar-empty__title">No tienes facturas esperando pago.</div>
+          <div className="cr-empty">
+            <div className="cr-empty__title">No tienes facturas esperando pago.</div>
           </div>
         ) : (
-          <table className="ar-table ar-table--stack">
+          <table className="cr-table cr-table--stack">
             <thead>
               <tr>
                 <th>Folio</th>
-                <th className="ar-num">Monto</th>
-                <th className="ar-num">Fecha</th>
+                <th className="cr-num">Monto</th>
+                <th className="cr-num">Fecha</th>
               </tr>
             </thead>
             <tbody>
               {porCobrar.map((f) => (
                 <tr key={f.id}>
-                  <td className="ar-code" data-label="Folio">
+                  <td className="cr-code" data-label="Folio">
                     <a href={`/facturas/${f.id}`}>{f.folio}</a>
                   </td>
-                  <td className="ar-num" data-label="Monto">
+                  <td className="cr-num" data-label="Monto">
                     {f.total}
                   </td>
-                  <td className="ar-num" data-label="Fecha">
+                  <td className="cr-num" data-label="Fecha">
                     {f.fecha}
                   </td>
                 </tr>

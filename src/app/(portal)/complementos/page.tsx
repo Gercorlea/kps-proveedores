@@ -34,8 +34,8 @@ export default async function Page() {
   const session = await getSession()
   if (!session) {
     return (
-      <div className="ar-info" data-tone="danger">
-        <span className="ar-info__label">Sin sesion</span>
+      <div className="cr-info" data-tone="danger">
+        <span className="cr-info__label">Sin sesion</span>
         <p>Vuelve a entrar para ver tus complementos.</p>
       </div>
     )
@@ -56,10 +56,10 @@ export default async function Page() {
 
   return (
     <>
-      <div className="ar-page-head">
+      <div className="cr-page-head">
         <div>
           <h1>Complementos de pago</h1>
-          <p className="ar-lead" style={{ marginBottom: 0 }}>
+          <p className="cr-lead cr-flush">
             {pendientes.length === 0
               ? 'No debes ninguno'
               : `${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'}`}
@@ -68,34 +68,34 @@ export default async function Page() {
       </div>
 
       {error && (
-        <div className="ar-info" data-tone="danger">
-          <span className="ar-info__label">No se pudo leer la base del portal</span>
+        <div className="cr-info" data-tone="danger">
+          <span className="cr-info__label">No se pudo leer la base del portal</span>
           <p>{error}</p>
         </div>
       )}
 
       {vencidos > 0 && (
-        <div className="ar-info" data-tone="danger">
-          <span className="ar-info__label">
+        <div className="cr-info" data-tone="danger">
+          <span className="cr-info__label">
             {vencidos === 1 ? 'Un complemento vencido' : `${vencidos} complementos vencidos`}
           </span>
           <p>El SAT multa cada comprobante fuera de plazo. Emitelo y subelo cuanto antes.</p>
         </div>
       )}
 
-      <section className="ar-section">
+      <section className="cr-section">
         {pendientes.length === 0 ? (
-          <div className="ar-empty">
-            <div className="ar-empty__title">Estas al dia.</div>
+          <div className="cr-empty">
+            <div className="cr-empty__title">Estas al dia.</div>
             <p>Aqui apareceran tus facturas PPD en cuanto KPS marque el pago.</p>
           </div>
         ) : (
-          <table className="ar-table ar-table--stack">
+          <table className="cr-table cr-table--stack">
             <thead>
               <tr>
                 <th>Factura</th>
-                <th className="ar-num">Total</th>
-                <th className="ar-num">Pagada</th>
+                <th className="cr-num">Total</th>
+                <th className="cr-num">Pagada</th>
                 <th>Fecha limite</th>
                 <th />
               </tr>
@@ -105,17 +105,17 @@ export default async function Page() {
                 const p = plazo(c)
                 return (
                   <tr key={c.folio}>
-                    <td className="ar-code" data-label="Factura">
+                    <td className="cr-code" data-label="Factura">
                       {c.folio}
                     </td>
-                    <td className="ar-num" data-label="Total">
+                    <td className="cr-num" data-label="Total">
                       {c.total}
                     </td>
-                    <td className="ar-num" data-label="Pagada">
+                    <td className="cr-num" data-label="Pagada">
                       {fecha(c.pagadaEl)}
                     </td>
                     <td data-label="Fecha limite">
-                      <span className="ar-status" data-tone={p.tono}>
+                      <span className="cr-status" data-tone={p.tono}>
                         {p.texto}
                       </span>
                     </td>
@@ -130,9 +130,9 @@ export default async function Page() {
         )}
       </section>
 
-      <section className="ar-section">
-        <div className="ar-info">
-          <span className="ar-info__label">El plazo lo fija el SAT</span>
+      <section className="cr-section">
+        <div className="cr-info">
+          <span className="cr-info__label">El plazo lo fija el SAT</span>
           <p>
             El complemento vence el dia 5 del mes siguiente al pago. Solo lo llevan las facturas PPD:
             las PUE se cobran al emitirse y nunca aparecen aqui.

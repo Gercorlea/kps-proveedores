@@ -254,6 +254,33 @@ describe('parseCfdi — rechazos inmediatos de §12.1', () => {
     rechazo(SIN_TIMBRE, 'SIN_TIMBRE')
   })
 
+  /**
+   * El folio fiscal lleva el indice unico de `invoices.uuid` y es la llave con
+   * la que un complemento de pago encuentra su factura. Un UUID con basura
+   * entraria a las dos cosas, asi que se rechaza al leer y no como regla de
+   * estructura, que es opcional.
+   */
+  it('rechaza un folio fiscal que no tiene forma de UUID', () => {
+    rechazo(
+      // La P no es hexadecimal: el timbre no lo pudo emitir un PAC.
+      FACTURA_UN_CONCEPTO.replace(
+        'UUID="a1b2c3d4-1111-2222-3333-444455556666"',
+        'UUID="1013P006-A311-4B00-9C13-000000000311"',
+      ),
+      'UUID_INVALIDO',
+    )
+  })
+
+  it('rechaza un folio fiscal al que le faltan digitos', () => {
+    rechazo(
+      FACTURA_UN_CONCEPTO.replace(
+        'UUID="a1b2c3d4-1111-2222-3333-444455556666"',
+        'UUID="a1b2c3d4-1111-2222-3333-4444555566"',
+      ),
+      'UUID_INVALIDO',
+    )
+  })
+
   it('rechaza tipos de comprobante que no son factura ni nota de credito', () => {
     rechazo(
       FACTURA_UN_CONCEPTO.replace('TipoDeComprobante="I"', 'TipoDeComprobante="T"'),

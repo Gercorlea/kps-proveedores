@@ -1,26 +1,10 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* Hoja raiz del portal.
+ *
+ * CRONOS §Usage: los tokens y las clases de cronos.css son la fuente de verdad
+ * y no se redefinen en los componentes. Este archivo por tanto no declara nada
+ * propio — solo carga el sistema.
+ *
+ * Se retiro la importacion de Tailwind: dos sistemas de estilo compitiendo es
+ * justo como se erosiona un design system. Las pantallas usan clases .cr-*.
+ */
+@import '../styles/cronos.css';

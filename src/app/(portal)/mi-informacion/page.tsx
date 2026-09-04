@@ -79,13 +79,13 @@ function filas(doc: Record<string, unknown>): Array<[string, string]> {
 
 function Matriz({ datos }: { datos: Array<[string, string]> }) {
   return (
-    <div className="ar-card">
-      <table className="ar-table ar-matrix">
+    <div className="cr-card">
+      <table className="cr-table cr-matrix">
         <tbody>
           {datos.map(([label, valor]) => (
             <tr key={label}>
               <td>{label}</td>
-              <td className="ar-code">{valor}</td>
+              <td className="cr-code">{valor}</td>
             </tr>
           ))}
         </tbody>
@@ -99,8 +99,8 @@ export default async function Page() {
 
   if (!proveedor) {
     return (
-      <div className="ar-info" data-tone="danger">
-        <span className="ar-info__label">No se pudieron leer tus datos</span>
+      <div className="cr-info" data-tone="danger">
+        <span className="cr-info__label">No se pudieron leer tus datos</span>
         <p>
           Tu cuenta no esta vinculada a un proveedor, o el portal no pudo leer su ficha. Vuelve a
           intentarlo; si sigue igual, avisa a KPS.
@@ -145,25 +145,25 @@ export default async function Page() {
 
   return (
     <>
-      <div className="ar-page-head">
+      <div className="cr-page-head">
         <div>
           <h1>Mi informacion</h1>
-          <p className="ar-lead" style={{ marginBottom: 0 }}>
+          <p className="cr-lead cr-flush">
             {proveedor.nombre}
           </p>
         </div>
-        <div className="ar-page-head__meta">
-          <span className="ar-meta">Proveedor · {proveedor.supplierCode}</span>
+        <div className="cr-page-head__meta">
+          <span className="cr-meta">Proveedor · {proveedor.supplierCode}</span>
           <br />
-          <span className="ar-status" data-tone={proveedor.bloqueado ? 'danger' : 'ok'}>
+          <span className="cr-status" data-tone={proveedor.bloqueado ? 'danger' : 'ok'}>
             {proveedor.bloqueado ? 'Retenido' : 'Activo'}
           </span>
         </div>
       </div>
 
       {proveedor.bloqueado && (
-        <div className="ar-info" data-tone="danger">
-          <span className="ar-info__label">
+        <div className="cr-info" data-tone="danger">
+          <span className="cr-info__label">
             Tu cuenta esta retenida
             {proveedor.bloqueadoDesde ? ` desde el ${fecha(proveedor.bloqueadoDesde)}` : ''}
           </span>
@@ -174,20 +174,20 @@ export default async function Page() {
         </div>
       )}
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Datos fiscales</span>
-        <p className="ar-small">
+      <section className="cr-section">
+        <span className="cr-label">Datos fiscales</span>
+        <p className="cr-small">
           Es con estos datos con los que tienes que emitir el CFDI. Si alguno no coincide con el que
           usa tu facturador, la factura se devuelve: avisa a KPS antes de emitirla.
         </p>
         <Matriz datos={fiscales} />
       </section>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Domicilio fiscal</span>
+      <section className="cr-section">
+        <span className="cr-label">Domicilio fiscal</span>
         {domicilio.length === 0 ? (
-          <div className="ar-empty">
-            <div className="ar-empty__title">KPS no tiene tu domicilio fiscal registrado.</div>
+          <div className="cr-empty">
+            <div className="cr-empty__title">KPS no tiene tu domicilio fiscal registrado.</div>
             <p>Pide que lo capturen: forma parte de la ficha con la que se coteja tu CFDI.</p>
           </div>
         ) : (
@@ -195,11 +195,11 @@ export default async function Page() {
         )}
       </section>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Contacto registrado</span>
+      <section className="cr-section">
+        <span className="cr-label">Contacto registrado</span>
         {contacto.length === 0 ? (
-          <div className="ar-empty">
-            <div className="ar-empty__title">No hay contacto registrado.</div>
+          <div className="cr-empty">
+            <div className="cr-empty__title">No hay contacto registrado.</div>
             <p>
               Es a donde KPS escribe cuando una factura tuya necesita correccion. Sin el, los avisos
               no llegan a nadie.
@@ -210,8 +210,8 @@ export default async function Page() {
         )}
       </section>
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Condiciones comerciales</span>
+      <section className="cr-section">
+        <span className="cr-label">Condiciones comerciales</span>
         <Matriz datos={comerciales} />
       </section>
 
@@ -219,11 +219,11 @@ export default async function Page() {
           acota la facturacion son las ordenes de compra, que tienen su propia
           seccion en el menu. */}
       {esServicio && (
-        <section className="ar-section">
-          <span className="ar-eyebrow">Servicios contratados</span>
+        <section className="cr-section">
+          <span className="cr-label">Servicios contratados</span>
           {proveedor.servicios.length === 0 ? (
-            <div className="ar-empty">
-              <div className="ar-empty__title">No tienes servicios vigentes.</div>
+            <div className="cr-empty">
+              <div className="cr-empty__title">No tienes servicios vigentes.</div>
               <p>
                 Tus facturas se cargan contra un servicio contratado, asi que hasta que KPS registre
                 al menos uno no vas a poder enviar facturas. Pideselo a tu contacto en compras.
@@ -231,12 +231,12 @@ export default async function Page() {
             </div>
           ) : (
             <>
-              <p className="ar-small">
+              <p className="cr-small">
                 Esto es lo que puedes facturar. Si prestaste un servicio que no esta en la lista,
                 pide que lo registren antes de emitir el CFDI: una factura que no corresponde a
                 ninguno se devuelve.
               </p>
-              <table className="ar-table ar-table--stack">
+              <table className="cr-table cr-table--stack">
                 <thead>
                   <tr>
                     <th>Servicio</th>
@@ -250,7 +250,7 @@ export default async function Page() {
                       <td data-label="Servicio">{s.title}</td>
                       <td data-label="Alcance">{s.description}</td>
                       <td data-label="Estatus">
-                        <span className="ar-status" data-tone="ok">
+                        <span className="cr-status" data-tone="ok">
                           Vigente
                         </span>
                       </td>
@@ -266,13 +266,13 @@ export default async function Page() {
       {/* Los de baja van aparte y despues: en la misma tabla, quien la mira por
           encima creeria que tambien puede facturarlos. */}
       {esServicio && proveedor.serviciosBaja.length > 0 && (
-        <section className="ar-section">
-          <span className="ar-eyebrow">Servicios dados de baja</span>
-          <p className="ar-small">
+        <section className="cr-section">
+          <span className="cr-label">Servicios dados de baja</span>
+          <p className="cr-small">
             Ya no se pueden facturar. Se listan para que sepas por que una factura contra ellos se
             rechaza.
           </p>
-          <table className="ar-table ar-table--stack">
+          <table className="cr-table cr-table--stack">
             <thead>
               <tr>
                 <th>Servicio</th>
@@ -286,7 +286,7 @@ export default async function Page() {
                   <td data-label="Servicio">{s.title}</td>
                   <td data-label="Alcance">{s.description}</td>
                   <td data-label="Estatus">
-                    <span className="ar-status" data-tone="danger">
+                    <span className="cr-status" data-tone="danger">
                       De baja
                     </span>
                   </td>
@@ -298,20 +298,20 @@ export default async function Page() {
       )}
 
       {cuenta.length > 0 && (
-        <section className="ar-section">
-          <span className="ar-eyebrow">Tu cuenta de acceso</span>
+        <section className="cr-section">
+          <span className="cr-label">Tu cuenta de acceso</span>
           <Matriz datos={cuenta} />
         </section>
       )}
 
-      <section className="ar-section">
-        <span className="ar-eyebrow">Registro</span>
+      <section className="cr-section">
+        <span className="cr-label">Registro</span>
         <Matriz datos={registro} />
       </section>
 
-      <section className="ar-section">
-        <div className="ar-info">
-          <span className="ar-info__label">Que puedes cambiar y que no</span>
+      <section className="cr-section">
+        <div className="cr-info">
+          <span className="cr-info__label">Que puedes cambiar y que no</span>
           <p>
             La razon social, el RFC y el domicilio fiscal vienen de Business One, que es la fuente de
             verdad de los datos del proveedor. Para modificarlos hay que pedirselo a KPS: el portal

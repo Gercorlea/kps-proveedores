@@ -154,7 +154,7 @@ export default function Notificaciones({
       {abierto && (
         <div className="nt-panel" role="dialog" aria-label="Avisos">
           <div className="nt-panel__head">
-            <span className="ar-eyebrow" style={{ margin: 0 }}>
+            <span className="cr-label cr-flush">
               Avisos
             </span>
             {noLeidos > 0 && (
@@ -181,15 +181,15 @@ export default function Notificaciones({
                     onClick={() => alPulsar(a)}
                   >
                     <span className="nt-item__cabeza">
-                      <span className="ar-status" data-tone={a.tono ?? undefined}>
+                      <span className="cr-status" data-tone={a.tono ?? undefined}>
                         {a.titulo}
                       </span>
-                      <span className="ar-small ar-muted">{cuandoTexto(a.cuando)}</span>
+                      <span className="cr-small cr-muted">{cuandoTexto(a.cuando)}</span>
                     </span>
                     <span className="nt-item__texto">{a.mensaje}</span>
                     {a.facturaFolio && (
-                      <span className="ar-small ar-muted">
-                        <span className="ar-mono">{a.facturaFolio}</span>
+                      <span className="cr-small cr-muted">
+                        <span className="cr-mono">{a.facturaFolio}</span>
                         {a.ordenCompra ? ` · OC ${a.ordenCompra}` : ''}
                       </span>
                     )}
@@ -199,7 +199,7 @@ export default function Notificaciones({
             </ul>
           )}
 
-          <a href="/notificaciones" className="nt-todas ar-small">
+          <a href="/notificaciones" className="nt-todas cr-small">
             Ver todos los avisos
           </a>
         </div>
@@ -207,45 +207,54 @@ export default function Notificaciones({
 
       <style>{`
         .nt-caja { position: relative; display: flex; align-items: center; }
+        /* Caja con borde, no icono suelto: en una barra de cromo claro un
+           glifo sin marco no se lee como algo pulsable. */
         .nt-boton {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 30px;
-          height: 30px;
-          border: 1px solid transparent;
-          border-radius: var(--ar-r-control);
-          background: transparent;
-          color: var(--ar-ink-2);
+          width: 32px;
+          height: 32px;
+          border: 1px solid var(--cr-line-2);
+          border-radius: var(--cr-r-xs);
+          background: var(--cr-bg);
+          color: var(--cr-ink-2);
           cursor: pointer;
           position: relative;
+          transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
         }
-        .nt-boton:hover { background: var(--ar-surface-2); color: var(--ar-ink); }
+        .nt-boton:hover { background: var(--cr-surface-2); color: var(--cr-ink); }
+        .nt-boton:focus-visible { outline: none; box-shadow: var(--cr-ring); }
+        /* El contador se monta en la esquina, mordiendo el borde: dentro de la
+           caja competiria con el icono y a 9px no se leeria. El aro del color
+           de la barra lo despega del borde que pisa. */
         .nt-punto {
           position: absolute;
-          top: 1px;
-          right: 0;
-          min-width: 14px;
-          height: 14px;
-          padding: 0 3px;
-          border-radius: 7px;
-          background: var(--ar-danger);
-          color: var(--ar-on-accent);
-          font-family: var(--ar-mono);
-          font-size: 9px;
-          line-height: 14px;
+          top: -6px;
+          right: -6px;
+          min-width: 16px;
+          height: 16px;
+          padding: 0 4px;
+          border-radius: 8px;
+          background: var(--cr-danger);
+          color: var(--cr-on-accent);
+          font-family: var(--cr-mono);
+          font-size: 9.5px;
+          font-weight: 500;
+          line-height: 16px;
           text-align: center;
+          box-shadow: 0 0 0 2px var(--cr-bg);
         }
         .nt-panel {
           position: absolute;
-          top: calc(100% + var(--ar-s2));
+          top: calc(100% + var(--cr-s2));
           right: 0;
           width: 340px;
           max-height: 420px;
           overflow-y: auto;
-          background: var(--ar-bg);
-          border: 1px solid var(--ar-line-2);
-          border-radius: var(--ar-r-card);
+          background: var(--cr-bg);
+          border: 1px solid var(--cr-line-2);
+          border-radius: var(--cr-r-sm);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
           z-index: 40;
         }
@@ -253,51 +262,51 @@ export default function Notificaciones({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: var(--ar-s2);
-          padding: var(--ar-s3) var(--ar-s4);
-          border-bottom: 1px solid var(--ar-line);
+          gap: var(--cr-s2);
+          padding: var(--cr-s3) var(--cr-s4);
+          border-bottom: 1px solid var(--cr-line);
         }
         .nt-marcar {
           border: 0;
           background: transparent;
           padding: 0;
           font-size: 11.5px;
-          color: var(--ar-ink-3);
+          color: var(--cr-ink-3);
           cursor: pointer;
         }
-        .nt-marcar:hover { color: var(--ar-ink); text-decoration: underline; }
-        /* 12px es el tamano de .ar-small del sistema: el panel no es sitio para
+        .nt-marcar:hover { color: var(--cr-ink); text-decoration: underline; }
+        /* 12px es el tamano de .cr-small del sistema: el panel no es sitio para
            texto de cuerpo. */
-        .nt-vacio { padding: var(--ar-s4); color: var(--ar-ink-3); font-size: 12px; }
+        .nt-vacio { padding: var(--cr-s4); color: var(--cr-ink-3); font-size: 12px; }
         .nt-lista { list-style: none; margin: 0; padding: 0; }
         .nt-item {
           display: flex;
           flex-direction: column;
-          gap: var(--ar-s1);
+          gap: var(--cr-s1);
           width: 100%;
-          padding: var(--ar-s3) var(--ar-s4);
+          padding: var(--cr-s3) var(--cr-s4);
           border: 0;
-          border-bottom: 1px solid var(--ar-line);
+          border-bottom: 1px solid var(--cr-line);
           background: transparent;
           text-align: left;
           cursor: pointer;
         }
-        .nt-item:hover { background: var(--ar-surface-2); }
+        .nt-item:hover { background: var(--cr-surface-2); }
         /* El no leido se marca con una barra a la izquierda y no con el fondo:
            el fondo ya lo usa el hover y los dos juntos se confunden. */
-        .nt-item[data-nuevo='si'] { box-shadow: inset 2px 0 0 var(--ar-accent); }
+        .nt-item[data-nuevo='si'] { box-shadow: inset 2px 0 0 var(--cr-accent); }
         .nt-item__cabeza {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: var(--ar-s2);
+          gap: var(--cr-s2);
         }
-        .nt-item__texto { font-size: 12px; color: var(--ar-ink-2); }
+        .nt-item__texto { font-size: 12px; color: var(--cr-ink-2); }
         .nt-todas {
           display: block;
-          padding: var(--ar-s3) var(--ar-s4);
+          padding: var(--cr-s3) var(--cr-s4);
           text-align: center;
-          color: var(--ar-ink-2);
+          color: var(--cr-ink-2);
         }
       `}</style>
     </div>

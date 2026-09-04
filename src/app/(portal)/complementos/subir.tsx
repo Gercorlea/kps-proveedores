@@ -34,7 +34,7 @@ export default function Subir({ folio }: { folio: string }) {
     <>
       <button
         type="button"
-        className="ar-btn"
+        className="cr-btn"
         data-variant="secondary"
         disabled={subiendo}
         onClick={() => ref.current?.click()}
@@ -52,7 +52,7 @@ export default function Subir({ folio }: { folio: string }) {
         }}
       />
       {error && (
-        <div className="ar-small" data-tone="danger" style={{ marginTop: 'var(--ar-s2)' }}>
+        <div className="cr-small cr-mt-2" data-tone="danger">
           {error}
         </div>
       )}

@@ -60,5 +60,12 @@ export async function middleware(request: NextRequest) {
 export const config = {
   // Se excluyen los estaticos de Next, el favicon y la API: los handlers de la
   // API validan la sesion por su cuenta y devuelven 401, no una redireccion.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/).*)'],
+  //
+  // Y se excluyen los ARCHIVOS DE IMAGEN de public/. Sin esto, pedir
+  // /group-kps.png sin sesion contesta un 307 a /login, y como el optimizador de
+  // next/image resuelve la ruta local pidiendosela al propio servidor, recibe
+  // la redireccion en vez del PNG y responde 400: el logotipo no aparece ni en
+  // la barra ni en la pantalla de acceso —que es justo donde nadie tiene sesion
+  // todavia—. Son activos de marca, no datos: no hay nada que proteger ahi.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:png|jpe?g|gif|webp|avif|svg|ico)$).*)'],
 }

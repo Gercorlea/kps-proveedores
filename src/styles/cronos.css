@@ -1,0 +1,2023 @@
+/* ==========================================================================
+   CRONOS DESIGN SYSTEM — by Arcanum · v1.0 · PORTAL DE PROVEEDORES KPS
+   Spec: docs/diseno/design.md
+   Modo Light — tecnico y operativo.
+   Principio rector: si no aporta jerarquia o informacion, no va.
+
+   ALINEACION A LA SPEC v1.0
+   ---------------------------------------------------------------------------
+   La v2 habia suavizado el sistema —esquinas de 6/10/12/16px, sombra de reposo
+   en cada tarjeta, el mono replegado a solo importes y una neutra fria en vez
+   del beige—. La spec v1.0 pide lo contrario, y es lo que vive aqui:
+
+     · Esquinas afiladas: 2px en controles, 3px en tarjetas, 4px en overlays.
+     · Bordes hairline como UNICO recurso de separacion. Las tarjetas NO llevan
+       sombra; la elevacion es para overlays y para la superficie de IA.
+     · El mono vuelve al cromo: etiquetas eyebrow, encabezados de tabla, badges
+       y estatus van en IBM Plex Mono 9.5-12px en versalitas.
+     · Superficies beige: #FAFAF9 / #F4F4F1 / #D9D9D5.
+     · La jerarquia se construye con peso tipografico y aire, nunca con adorno.
+
+   Reglas del sistema —no son estilo, no se negocian—:
+     · El estatus vive en el dot, la etiqueta y el meter; nunca rellena una fila.
+     · El violeta es exclusivo de extraccion, cotejo y sugerencias del sistema.
+     · El valor de un KPI nunca lleva color; el color va en el delta o el dot.
+     · Cero emojis, cero iconos decorativos junto a titulos o dentro de KPIs.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* --------------------------------------------------------------------------
+   01 · TOKENS
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Superficies — beige, segun spec */
+  --cr-bg: #FFFFFF;
+  --cr-surface-2: #FAFAF9;
+  --cr-surface-3: #F4F4F1;
+  --cr-canvas: #D9D9D5;
+
+  /* Tinta.
+     NOTA DE CONTRASTE: `--cr-ink-3` (#99A0AB) es el valor de la spec y da
+     3.06:1 sobre blanco, por debajo de AA para texto pequeno. Se respeta
+     porque la spec lo fija, pero viste metadatos, ayudas de campo y encabezados
+     de tabla. Si se prioriza accesibilidad sobre fidelidad, el unico cambio
+     necesario es este token: #656E7C da 5.15:1 y mantiene los tres escalones. */
+  --cr-ink: #15171C;
+  --cr-ink-2: #5A616C;
+  --cr-ink-3: #99A0AB;
+  --cr-on-accent: #FFFFFF;
+
+  /* Lineas — hairline, unico recurso de separacion */
+  --cr-line-soft: rgba(10, 12, 18, 0.06);
+  --cr-line: rgba(10, 12, 18, 0.10);
+  --cr-line-2: rgba(10, 12, 18, 0.16);
+
+  /* Acento de inteligencia — SOLO extraccion, cotejo y sugerencias del sistema */
+  --cr-accent: #5B3DF5;
+  --cr-accent-ink: #4A2FE0;
+  --cr-accent-tint: rgba(91, 61, 245, 0.08);
+  --cr-accent-tint-2: rgba(91, 61, 245, 0.14);
+
+  /* Estatus — dots, etiquetas y meters. Nunca relleno de fila */
+  --cr-ok: #1F9468;
+  --cr-warn: #B9791C;
+  --cr-danger: #CF4733;
+
+  /* Tintes 10-12% para chips */
+  --cr-ok-tint: rgba(31, 148, 104, 0.10);
+  --cr-warn-tint: rgba(185, 121, 28, 0.12);
+  --cr-danger-tint: rgba(207, 71, 51, 0.10);
+
+  /* Variante oscura para TEXTO sobre el tinte del propio tono: el color vivo se
+     queda en dots, barras y rellenos; en texto de 10-12px sobre su propio tinte
+     no llegaba a AA. Mismo patron que accent / accent-ink. */
+  --cr-ok-ink: #146A4A;
+  --cr-warn-ink: #8A570C;
+  --cr-danger-ink: #A93122;
+
+  /* Lavados — el mismo tono a menor alfa, para bloques de aviso (§08) */
+  --cr-ok-wash: rgba(31, 148, 104, 0.055);
+  --cr-warn-wash: rgba(185, 121, 28, 0.06);
+  --cr-danger-wash: rgba(207, 71, 51, 0.055);
+  --cr-accent-wash: rgba(91, 61, 245, 0.05);
+
+  /* Elevacion — SOLO overlays y superficie de IA. Las tarjetas van sin sombra. */
+  --cr-shadow-1: 0 1px 2px rgba(10, 12, 18, 0.05);
+  --cr-shadow-2: 0 12px 28px -10px rgba(10, 12, 18, 0.18), 0 4px 10px -4px rgba(10, 12, 18, 0.08);
+  --cr-shadow-ai: 0 1px 2px rgba(91, 61, 245, 0.08), 0 8px 24px -10px rgba(91, 61, 245, 0.26);
+
+  /* Anillo de foco — un solo recurso para todo lo enfocable */
+  --cr-ring: 0 0 0 3px rgba(91, 61, 245, 0.22);
+  --cr-ring-danger: 0 0 0 3px rgba(207, 71, 51, 0.20);
+
+  /* Espaciado base 4px */
+  --cr-s1: 4px;   --cr-s2: 8px;   --cr-s3: 12px;  --cr-s4: 16px;
+  --cr-s5: 20px;  --cr-s6: 24px;  --cr-s8: 32px;  --cr-s10: 40px;
+
+  /* Geometria — esquinas afiladas */
+  --cr-r-xs: 2px;
+  --cr-r-sm: 3px;
+  --cr-r-md: 4px;
+  --cr-r-lg: 4px;
+  --cr-r-pill: 999px;
+
+  /* Tipografia */
+  --cr-font: 'Hanken Grotesk', ui-sans-serif, system-ui, Helvetica, Arial, sans-serif;
+  --cr-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Layout */
+  --cr-sidebar: 224px;
+  --cr-topbar: 64px;
+}
+
+
+/* --------------------------------------------------------------------------
+   02 · BASE
+   -------------------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--cr-surface-3);
+  color: var(--cr-ink);
+  font-family: var(--cr-font);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.018em; }
+h1 { font-size: 26px; line-height: 1.2; }
+h2 { font-size: 19px; line-height: 1.3; }
+h3 { font-size: 14px; line-height: 1.35; }
+
+p { margin: 0 0 var(--cr-s3); max-width: 68ch; }
+
+/* Los enlaces ya no se subrayan con un borde inferior permanente: en una
+   interfaz densa eso pinta una reja de líneas grises. El subrayado aparece al
+   pasar por encima, que es cuando hace falta confirmar que es clicable. */
+a { color: var(--cr-ink); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
+/* Foco visible siempre. No se elimina el outline: se rediseña. */
+:focus-visible {
+  outline: 2px solid var(--cr-accent);
+  outline-offset: 2px;
+  border-radius: var(--cr-r-xs);
+}
+
+::selection { background: var(--cr-accent-tint-2); }
+
+/* --------------------------------------------------------------------------
+   03 · TIPOGRAFIA UTILITARIA
+
+   La jerarquia se construye con peso y tamano, nunca con decoracion. La sans
+   (Hanken Grotesk) lleva la interfaz; el mono (IBM Plex Mono) lleva folios,
+   metricas, etiquetas y dato de maquina. No apilar mas de dos pesos por vista.
+   -------------------------------------------------------------------------- */
+
+/* Escala de titulos ------------------------------------------------------- */
+
+.cr-display {
+  font-family: var(--cr-font);
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.028em;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.cr-h1 {
+  font-family: var(--cr-font);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.022em;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.cr-h2 {
+  font-family: var(--cr-font);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.016em;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.cr-h3 {
+  font-family: var(--cr-font);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.008em;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.cr-body-text { font-family: var(--cr-font); font-size: 13.5px; font-weight: 400; line-height: 1.55; color: var(--cr-ink-2); }
+.cr-small { font-family: var(--cr-font); font-size: 12px; font-weight: 400; color: var(--cr-ink-2); }
+
+/* KPI suelto, fuera de una tarjeta .cr-kpi */
+.cr-metric {
+  font-family: var(--cr-font);
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cr-ink);
+}
+
+/* Mono ------------------------------------------------------------------- */
+
+/* Etiqueta eyebrow: mono en versalitas. Es el cromo del sistema —encabeza una
+   seccion, no la titula—. Por eso va a 9.5px y en ink-3: tiene que leerse como
+   rotulo de plano, no competir con el titulo que va debajo. */
+.cr-label {
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cr-ink-3);
+  margin: 0 0 var(--cr-s3);
+  display: block;
+}
+
+.cr-label .cr-num { color: var(--cr-accent); margin-right: var(--cr-s2); }
+
+/* Dato de maquina: folios, RFC, UUID, importes, timestamps. */
+.cr-mono {
+  font-family: var(--cr-mono);
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.cr-meta {
+  font-family: var(--cr-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cr-ink-3);
+}
+
+.cr-lead { font-size: 14px; color: var(--cr-ink-2); max-width: 62ch; }
+.cr-muted { color: var(--cr-ink-3); }
+
+.cr-num-right { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* Dato de maquina fuera de una tabla: folio, RFC, UUID, codigo de articulo. */
+.cr-code { font-family: var(--cr-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   04 · SHELL DE APLICACIÓN
+   -------------------------------------------------------------------------- */
+
+.cr-shell { min-height: 100vh; display: flex; flex-direction: column; background: var(--cr-surface-3); }
+
+.cr-topbar {
+  height: var(--cr-topbar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--cr-line);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* La marca ocupa una columna del ANCHO EXACTO del sidebar y se separa con su
+   propio borde derecho. Esa raya y la del sidebar son entonces la misma linea
+   vertical continua al bajar la vista —que es lo que hace que la barra y el
+   menu se lean como una sola retícula y no como dos piezas pegadas—. Por eso
+   la regla no es un <span> separador: si lo fuera, habria que mantener a mano
+   dos medidas que tienen que coincidir siempre. */
+.cr-brand {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: var(--cr-s3);
+  width: var(--cr-sidebar);
+  flex: none;
+  padding: 0 var(--cr-s3) 0 var(--cr-s5);
+  border-right: 1px solid var(--cr-line);
+  background: var(--cr-surface-2);
+  font-family: var(--cr-font);
+  color: var(--cr-ink);
+}
+.cr-brand:hover { text-decoration: none; }
+
+/* Contexto de operacion: a quien se le esta facturando. Ocupa el resto. */
+.cr-topbar__context {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-s3);
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--cr-s5);
+}
+
+.cr-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-s3);
+  flex: none;
+  padding-right: var(--cr-s6);
+}
+
+/* El logotipo va en tile: el PNG ya trae su propio fondo en tinta. */
+/* El logotipo es APAISADO (431x150, 2.87:1), no un tile cuadrado: en el hueco
+   cuadrado de 34x34 que tenia antes, `object-fit: contain` lo dejaba en 34x12 y
+   la palabra no se leia.
+
+   132x46 es su proporcion exacta. La altura manda sobre el ancho: en una barra
+   de 64px deja 9px de aire arriba y abajo, que es lo que evita que la marca
+   toque el borde inferior. De ancho sobra sitio —la columna da 192 utiles— pero
+   subir mas la altura apretaria la barra.
+
+   `contain` se queda como red: si algun dia cambia el PNG, la marca se encoge
+   dentro de la caja en vez de deformarse. */
+.cr-brand__logo {
+  width: 132px;
+  height: 46px;
+  flex: none;
+  object-fit: contain;
+}
+
+/* La elipsis no es cosmetica: el nombre del proveedor es texto de la base y
+   puede ser largo. Sin recortarlo la barra crece por encima del ancho de la
+   ventana y se lleva por delante el scroll horizontal de toda la pagina. */
+.cr-topbar__context > .cr-pill { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-topbar__context > .cr-pill { min-width: 0; display: inline-flex; }
+
+.cr-brand__context { color: var(--cr-ink-3); font-weight: 400; flex: none; }
+
+.cr-body { display: flex; flex: 1; min-height: 0; }
+
+.cr-sidebar {
+  width: var(--cr-sidebar);
+  flex: none;
+  border-right: 1px solid var(--cr-line);
+  padding: var(--cr-s4) var(--cr-s3);
+  background: var(--cr-surface-2);
+}
+
+.cr-nav__group { margin-bottom: var(--cr-s6); }
+.cr-nav__label {
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cr-ink-3);
+  padding: 0 var(--cr-s3) var(--cr-s2);
+  display: block;
+}
+
+/*
+ * Renglon de navegacion.
+ *
+ * Calcado del de Industria Real (components/layout/Sidebar.tsx): 12px de gap
+ * entre icono y etiqueta, 6px de alto, 3px de radio y 13px de texto. El activo
+ * lleva DOS marcas a la vez —fondo en surface-3 y un filo de 3px en tinta
+ * pegado al borde izquierdo— porque el fondo solo, en un menu de ocho renglones
+ * sobre blanco, se pierde: el filo es lo que el ojo encuentra sin buscar.
+ *
+ * El peso del activo sube a 500 y no a 600: con 600 el texto ensancha lo
+ * bastante para que el renglon "salte" al entrar en la pantalla.
+ */
+.cr-nav__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--cr-s3);
+  padding: 6px var(--cr-s3);
+  margin-bottom: 2px;
+  border-radius: var(--cr-r-sm);
+  color: var(--cr-ink-2);
+  border: 0;
+  font-size: 13px;
+  font-weight: 400;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.cr-nav__item:hover { background: var(--cr-surface-3); color: var(--cr-ink); text-decoration: none; }
+
+.cr-nav__item[aria-current="page"] {
+  color: var(--cr-ink);
+  font-weight: 500;
+  background: var(--cr-surface-3);
+}
+
+.cr-nav__item[aria-current="page"]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--cr-ink);
+  border-radius: var(--cr-r-sm) 0 0 var(--cr-r-sm);
+}
+
+/* El icono se apaga cuando el renglon no esta activo: en ink-2, ocho glifos
+   seguidos pesan tanto como las etiquetas y el menu se lee como una reja. */
+.cr-nav__icon { width: 16px; height: 16px; flex: none; color: var(--cr-ink-3); }
+.cr-nav__item:hover .cr-nav__icon,
+.cr-nav__item[aria-current="page"] .cr-nav__icon { color: var(--cr-ink); }
+
+/* La etiqueta se come el sobrante para que el contador quede pegado a la
+   derecha, y se recorta: los nombres los escribe el portal, pero nada
+   garantiza que quepan en 248px. */
+.cr-nav__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.cr-nav__count {
+  font-family: var(--cr-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--cr-ink-3);
+  font-variant-numeric: tabular-nums;
+  background: var(--cr-surface-3);
+  border-radius: var(--cr-r-pill);
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+.cr-nav__item[aria-current="page"] .cr-nav__count { background: var(--cr-bg); color: var(--cr-ink-2); }
+
+/*
+ * El lienzo de trabajo.
+ *
+ * BLANCO Y A ANCHO COMPLETO, sin contenedor exterior. Las dos cosas son regla
+ * del sistema, no gusto:
+ *
+ *   · Fondo blanco. TODA ruta de este portal es una pestana del menu, asi que
+ *     todas van en blanco; el beige del shell queda para el marco. Con el main
+ *     sin fondo propio el contenido caia sobre el beige y las tarjetas blancas
+ *     flotaban encima, que es el efecto de "doble superficie" que la spec
+ *     evita: aqui la definicion la da el borde hairline, no un cambio de tono.
+ *
+ *   · Sin `max-width` ni `margin-inline: auto`. Recortar la columna a 1360px y
+ *     centrarla abria dos margenes muertos a los lados y desalineaba el titulo
+ *     de pantalla respecto del logotipo de la barra. El contenido arranca a
+ *     24px del borde de su columna, igual que los renglones del menu arrancan
+ *     a 24px del borde de la suya: es la misma reticula bajando.
+ */
+.cr-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--cr-s6) var(--cr-s6) var(--cr-s8);
+  width: 100%;
+  background: var(--cr-bg);
+}
+
+.cr-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cr-s6);
+  padding-bottom: var(--cr-s4);
+  margin-bottom: var(--cr-s5);
+  border-bottom: 1px solid var(--cr-line-soft);
+}
+
+.cr-page-head__meta { text-align: right; }
+
+.cr-section { margin-bottom: var(--cr-s6); }
+
+/* --------------------------------------------------------------------------
+   05 · TABLAS — componente por defecto para datos operativos
+
+   Marco hairline a 3px, sin sombra. El encabezado es mono en versalitas —es
+   rotulo de columna, no texto de lectura— y el hover de fila es tinta neutra,
+   nunca el violeta: el acento significa IA, no "estoy encima de esta fila".
+   Prohibido: cuadricula por celda, <th> con fondo propio, striping par/impar.
+   -------------------------------------------------------------------------- */
+
+.cr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--cr-bg);
+}
+
+.cr-table thead th {
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cr-ink-3);
+  text-align: left;
+  background: var(--cr-bg);
+  padding: var(--cr-s3) var(--cr-s4);
+  border-bottom: 1px solid var(--cr-line);
+  white-space: nowrap;
+}
+
+.cr-table tbody td {
+  padding: var(--cr-s3) var(--cr-s4);
+  border-bottom: 1px solid var(--cr-line-soft);
+  color: var(--cr-ink-2);
+  vertical-align: middle;
+}
+
+.cr-table tbody tr:last-child td { border-bottom: 0; }
+
+/* La primera columna es la entidad: se renderiza en tinta principal */
+.cr-table tbody td:first-child { color: var(--cr-ink); font-weight: 500; }
+
+/* Tinta neutra, no `--cr-accent-tint`: el violeta esta reservado a IA. */
+.cr-table tbody tr:hover td { background: rgba(10, 12, 18, 0.045); }
+
+/* Celdas numericas: mono, tabular y a la derecha. Son dato de maquina. */
+.cr-table td.cr-num,
+.cr-table th.cr-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.cr-table td.cr-num { font-family: var(--cr-mono); font-size: 12px; color: var(--cr-ink); }
+
+.cr-table td.cr-code { font-family: var(--cr-mono); font-size: 12px; }
+
+/* Fechas: "22 JUL 2026" partido en tres renglones roba mas ancho del que ahorra */
+.cr-table td.cr-date, .cr-table th.cr-date { white-space: nowrap; }
+
+/*
+ * Envoltorio para tablas anchas.
+ *
+ * Sin esto, una columna de mas empuja el ancho de la PAGINA: scrollea todo en
+ * horizontal, incluida la navegacion, y las ultimas columnas quedan fuera de
+ * la ventana sin ninguna pista de que estan ahi. Con el envoltorio, el
+ * desbordamiento se queda dentro de la tabla.
+ *
+ * Es ademas el marco que contiene la tabla: el radio va aqui porque `overflow-x`
+ * ya recorta, y asi el encabezado no se sale de la esquina.
+ */
+.cr-table-scroll {
+  overflow-x: auto;
+  background: var(--cr-bg);
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-sm);
+}
+.cr-table-scroll > .cr-table { min-width: 100%; }
+
+/* Una tabla suelta —sin envoltorio— se viste igual, para que las pantallas que
+   todavía no lo usan no se queden con la tabla desnuda sobre el fondo. */
+.cr-table:not(.cr-table-scroll > .cr-table) {
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-sm);
+  overflow: hidden;
+}
+
+/* Matriz de comparación — para contrastes, no para listados */
+.cr-matrix td:first-child {
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cr-ink-3);
+}
+
+/* Fila con diferencia detectada por el cotejo */
+.cr-matrix tr[data-diff="true"] td { background: var(--cr-surface-2); }
+.cr-matrix tr[data-diff="true"] td:last-child { color: var(--cr-danger); font-weight: 600; }
+
+/* --------------------------------------------------------------------------
+   06 · ESTATUS — dots, labels, badges, pills
+
+   El color de estatus vive en el punto, la etiqueta y el meter. NUNCA rellena
+   una superficie: una fila tenida de rojo grita mas fuerte que el dato que
+   contiene. El chip tenido de `.cr-badge` es la unica concesion, y es de 9.5px.
+   -------------------------------------------------------------------------- */
+
+/* Punto de estatus suelto. 7px, se acompana SIEMPRE de texto: el color solo no
+   comunica —ni para daltonismo ni para lector de pantalla—. */
+.cr-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cr-ink-3);
+  flex: none;
+}
+
+.cr-dot--ok { background: var(--cr-ok); }
+.cr-dot--warn { background: var(--cr-warn); }
+.cr-dot--danger { background: var(--cr-danger); }
+.cr-dot--ai { background: var(--cr-accent); }
+.cr-dot--live { background: var(--cr-ok); animation: cr-pulse 2s ease-in-out infinite; }
+
+@keyframes cr-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cr-dot--live,
+  .cr-status[data-live="true"]::before { animation: none; }
+}
+
+/* Etiqueta de estatus en linea: mono en versalitas + punto. Sin relleno. */
+.cr-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--cr-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0;
+  background: none;
+  color: var(--cr-ink-2);
+  white-space: nowrap;
+}
+
+.cr-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cr-ink-3);
+  flex: none;
+}
+
+/* El texto usa la variante oscura del tono para llegar a AA a 10px; el punto
+   se queda con el color vivo, que ahi si es un grafico. */
+.cr-status[data-tone="ok"], .cr-status--ok { color: var(--cr-ok-ink); }
+.cr-status[data-tone="warn"], .cr-status--warn { color: var(--cr-warn-ink); }
+.cr-status[data-tone="danger"], .cr-status--danger { color: var(--cr-danger-ink); }
+.cr-status[data-tone="ai"], .cr-status--ai { color: var(--cr-accent-ink); }
+
+.cr-status[data-tone="ok"]::before, .cr-status--ok::before { background: var(--cr-ok); }
+.cr-status[data-tone="warn"]::before, .cr-status--warn::before { background: var(--cr-warn); }
+.cr-status[data-tone="danger"]::before, .cr-status--danger::before { background: var(--cr-danger); }
+.cr-status[data-tone="ai"]::before, .cr-status--ai::before { background: var(--cr-accent); }
+
+.cr-status[data-live="true"]::before { animation: cr-pulse 2s ease-in-out infinite; }
+
+/* Chip mono en versalitas. Tinte al 10-12%, nunca relleno solido. */
+.cr-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px var(--cr-s2);
+  border-radius: var(--cr-r-xs);
+  background: var(--cr-surface-3);
+  color: var(--cr-ink-2);
+  border: 0;
+  white-space: nowrap;
+}
+
+/* Badge AUTO — senala contenido extraido o calculado por el sistema */
+.cr-badge[data-tone="ai"], .cr-badge--ai { background: var(--cr-accent-tint); color: var(--cr-accent-ink); }
+.cr-badge[data-tone="ok"], .cr-badge--ok { background: var(--cr-ok-tint); color: var(--cr-ok-ink); }
+.cr-badge[data-tone="warn"], .cr-badge--warn { background: var(--cr-warn-tint); color: var(--cr-warn-ink); }
+.cr-badge[data-tone="danger"], .cr-badge--danger { background: var(--cr-danger-tint); color: var(--cr-danger-ink); }
+
+/* Chip de contorno: filtros de listado y lectura de contexto en la barra.
+   RADIO 2px, no 999px. La spec lo llama "pill" y eso hizo pensar en un radio
+   de pastilla, pero la implementacion de referencia —Industria Real,
+   app/cronos.css— lo tiene en `--cr-r-xs`: en un sistema de esquinas afiladas
+   una fila de capsulas es lo unico que se sale del lenguaje. El unico 999px
+   que queda es el dot de estatus, que es un circulo de verdad. */
+.cr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--cr-line-2);
+  border-radius: var(--cr-r-xs);
+  padding: 7px 11px;
+  font-family: var(--cr-font);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--cr-ink);
+  background: var(--cr-bg);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.cr-pill:hover { background: var(--cr-surface-2); color: var(--cr-ink); }
+
+/* `aria-pressed` cuando la pildora es un boton; `aria-current` cuando es un
+   enlace —un enlace no admite aria-pressed— y el filtro vive en la URL. */
+.cr-pill[aria-pressed="true"],
+.cr-pill[aria-current="page"] {
+  background: var(--cr-ink);
+  border-color: var(--cr-ink);
+  color: var(--cr-on-accent);
+}
+
+/* --------------------------------------------------------------------------
+   07 · CARDS Y PANELES
+
+   Definicion por borde hairline, nunca por sombra: la elevacion esta reservada
+   a overlays (§18) y a la superficie de IA. El hover se expresa subiendo el
+   borde a `--cr-line-2` o tintando el fondo, no levantando la caja.
+   Padding fijo de 18px —sin overrides locales— para que todas las tarjetas
+   midan igual en todas las pantallas.
+   -------------------------------------------------------------------------- */
+
+.cr-card {
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-sm);
+  background: var(--cr-bg);
+  padding: 18px;
+}
+
+/* Excepcion estructural: la tarjeta que envuelve una tabla o secciones con su
+   propio padding se declara con `data-flush`, no con un `p-0` suelto. */
+.cr-card[data-flush="true"] { padding: 0; }
+
+.cr-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cr-s3);
+  margin-bottom: var(--cr-s3);
+}
+
+/* Identificador en bloque solido a la izquierda */
+.cr-card__id {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--cr-ink);
+  color: var(--cr-on-accent);
+  font-family: var(--cr-mono);
+  font-size: 11px;
+  border-radius: var(--cr-r-xs);
+}
+
+/* Card IA — borde violeta, barra de acento superior, sombra tenue.
+   Es la UNICA tarjeta del sistema con sombra, y solo porque la superficie de IA
+   tiene que leerse como una capa distinta del resto del documento. */
+.cr-card[data-ai="true"],
+.cr-card--ai {
+  border-color: var(--cr-accent-tint-2);
+  box-shadow: var(--cr-shadow-ai);
+  position: relative;
+  overflow: hidden;
+}
+
+.cr-card[data-ai="true"]::before,
+.cr-card--ai::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--cr-accent);
+}
+
+.cr-card[data-ai="true"] .cr-card__id,
+.cr-card--ai .cr-card__id { background: var(--cr-accent); }
+
+/* Panel — el contenedor de carga del sistema: tablas, listas y graficas.
+   A diferencia de `.cr-card`, separa cabecera y cuerpo con una linea, y el
+   cuerpo puede ir a ras: una tabla se pega al borde en vez de flotar. */
+.cr-panel {
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-sm);
+  background: var(--cr-bg);
+  overflow: hidden;
+}
+
+.cr-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cr-s3);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cr-line);
+}
+
+.cr-panel__title {
+  font-family: var(--cr-font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.008em;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.cr-panel__body { padding: 18px; }
+
+/* El cuerpo que contiene una tabla va sin padding: el marco ya lo da el panel. */
+.cr-panel__body[data-flush="true"] { padding: 0; }
+.cr-panel__body > .cr-table:not(.cr-table-scroll > .cr-table),
+.cr-panel__body > .cr-table-scroll { border: 0; border-radius: 0; }
+
+/* --------------------------------------------------------------------------
+   08 · INFO-BOX
+
+   Era una barra de 2px a la izquierda con la esquina derecha redondeada: media
+   caja. Pasa a tarjeta completa teñida, con el tono en el borde entero.
+   -------------------------------------------------------------------------- */
+
+.cr-info {
+  border: 1px solid var(--cr-line);
+  background: var(--cr-surface-2);
+  padding: var(--cr-s4) var(--cr-s5);
+  border-radius: var(--cr-r-md);
+  margin-bottom: var(--cr-s3);
+}
+
+/* Con accion propia, el aviso se lee en una sola franja: el motivo a la
+   izquierda y el boton a la derecha. Apilado ocupaba 130px de alto para decir
+   dos renglones, y el bloque de color acababa pesando mas que la tabla que
+   tiene debajo. `:has()` lo resuelve sin tocar el markup de cada pantalla:
+   quien no trae botones se queda en el flujo de bloque de siempre. */
+.cr-info:has(> .cr-btn-row) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cr-s2) var(--cr-s5);
+}
+.cr-info:has(> .cr-btn-row) > .cr-info__label { flex: 1 1 100%; }
+.cr-info:has(> .cr-btn-row) > p { flex: 1 1 240px; margin-bottom: 0; }
+.cr-info:has(> .cr-btn-row) > .cr-btn-row { flex: 0 0 auto; margin-top: 0; }
+
+.cr-info__label {
+  font-family: var(--cr-font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--cr-ink);
+  display: block;
+  margin-bottom: var(--cr-s1);
+}
+
+.cr-info p { color: var(--cr-ink-2); }
+.cr-info p:last-child { margin-bottom: 0; }
+
+.cr-info[data-tone="ai"] { border-color: var(--cr-accent-tint-2); background: var(--cr-accent-wash); }
+.cr-info[data-tone="ai"] .cr-info__label { color: var(--cr-accent-ink); }
+.cr-info[data-tone="warn"] { border-color: rgba(169, 108, 18, 0.24); background: var(--cr-warn-wash); }
+.cr-info[data-tone="warn"] .cr-info__label { color: var(--cr-warn-ink); }
+.cr-info[data-tone="danger"] { border-color: rgba(193, 61, 43, 0.24); background: var(--cr-danger-wash); }
+.cr-info[data-tone="danger"] .cr-info__label { color: var(--cr-danger-ink); }
+.cr-info[data-tone="ok"] { border-color: rgba(23, 131, 92, 0.24); background: var(--cr-ok-wash); }
+.cr-info[data-tone="ok"] .cr-info__label { color: var(--cr-ok-ink); }
+
+/* --------------------------------------------------------------------------
+   09 · KPI
+
+   La rejilla era una sola caja partida por líneas internas —una tabla de una
+   fila, en el fondo—. Pasa a tarjetas sueltas con separación real: cada cifra
+   es una unidad, y así se puede hacer clic en una sin que parezca la fila.
+   -------------------------------------------------------------------------- */
+
+.cr-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--cr-s3);
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.cr-kpi {
+  padding: var(--cr-s4) 18px;
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-sm);
+  background: var(--cr-bg);
+}
+
+.cr-kpi:last-child { border-right: 1px solid var(--cr-line); }
+
+.cr-kpi__label {
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cr-ink-3);
+  display: block;
+  margin-bottom: var(--cr-s2);
+}
+
+/* El valor nunca lleva color. El color va solo en el delta o el dot. */
+.cr-kpi__value {
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cr-ink);
+}
+
+.cr-kpi__unit { font-size: 14px; color: var(--cr-ink-3); margin-left: 3px; }
+
+.cr-kpi__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--cr-s2);
+  font-family: var(--cr-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--cr-ink-2);
+}
+/* El punto es del CSS. Escrito como "●" en el JSX viajaba dentro del texto:
+   lo leia el lector de pantalla y no habia forma de alinearlo con la linea
+   base. Solo aparece cuando hay tono que comunicar. */
+.cr-kpi__delta[data-tone]::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.cr-kpi__delta[data-tone="ok"] { color: var(--cr-ok-ink); }
+.cr-kpi__delta[data-tone="warn"] { color: var(--cr-warn-ink); }
+.cr-kpi__delta[data-tone="danger"] { color: var(--cr-danger-ink); }
+
+/* --------------------------------------------------------------------------
+   10 · METER
+   -------------------------------------------------------------------------- */
+
+.cr-meter { height: 6px; background: var(--cr-surface-3); border-radius: var(--cr-r-pill); overflow: hidden; }
+.cr-meter__fill { height: 100%; background: var(--cr-ink-2); border-radius: var(--cr-r-pill); transition: width 300ms ease; }
+.cr-meter__fill[data-tone="ok"] { background: var(--cr-ok); }
+.cr-meter__fill[data-tone="warn"] { background: var(--cr-warn); }
+.cr-meter__fill[data-tone="danger"] { background: var(--cr-danger); }
+.cr-meter__fill[data-tone="ai"] { background: var(--cr-accent); }
+
+/* --------------------------------------------------------------------------
+   11 · BOTONES
+
+   Una clase base + una variante. La tinta oscura es la accion de compromiso por
+   defecto; el violeta `--ai` esta reservado a acciones ejecutadas por el
+   sistema; todo lo demas retrocede. Sin sombra: es un control, no una capa.
+
+   Se soportan las dos APIs a proposito — `data-variant="secondary"` (lo que ya
+   usa el portal) y `.cr-btn--secondary` (lo que pide la spec). Codigo nuevo:
+   usa la clase modificadora.
+   -------------------------------------------------------------------------- */
+
+.cr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 var(--cr-s4);
+  border-radius: var(--cr-r-xs);
+  border: 1px solid transparent;
+  font-family: var(--cr-font);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  background: var(--cr-ink);
+  color: var(--cr-on-accent);
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.cr-btn:hover { background: #23272F; text-decoration: none; }
+.cr-btn:focus-visible { outline: none; box-shadow: var(--cr-ring); }
+.cr-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Icono principal: SVG en linea de 14px. Solo donde es funcional —nunca de
+   adorno junto a un titulo o dentro de un KPI—. */
+.cr-btn__icon { width: 14px; height: 14px; flex: none; display: block; }
+
+/* Primaria: es el estado por defecto de `.cr-btn`; la clase existe para poder
+   escribirla explicita cuando conviene leerla en el JSX. */
+.cr-btn--primary { background: var(--cr-ink); color: var(--cr-on-accent); }
+.cr-btn--primary:hover { background: #23272F; }
+
+.cr-btn[data-variant="secondary"],
+.cr-btn--secondary {
+  background: var(--cr-bg);
+  color: var(--cr-ink);
+  border-color: var(--cr-line-2);
+}
+.cr-btn[data-variant="secondary"]:hover,
+.cr-btn--secondary:hover { background: var(--cr-surface-2); }
+
+.cr-btn[data-variant="ghost"],
+.cr-btn--ghost { background: transparent; color: var(--cr-ink-2); }
+.cr-btn[data-variant="ghost"]:hover,
+.cr-btn--ghost:hover { background: var(--cr-surface-3); color: var(--cr-ink); }
+
+.cr-btn[data-variant="danger"],
+.cr-btn--danger { background: var(--cr-danger); color: var(--cr-on-accent); }
+.cr-btn[data-variant="danger"]:hover,
+.cr-btn--danger:hover { background: #B03A28; }
+.cr-btn[data-variant="danger"]:focus-visible,
+.cr-btn--danger:focus-visible { box-shadow: var(--cr-ring-danger); }
+
+/* Variante IA — SOLO acciones ejecutadas por el sistema (extraer, cotejar,
+   sugerir). Usar el violeta como acento de marca generico rompe el codigo. */
+.cr-btn[data-variant="ai"],
+.cr-btn--ai { background: var(--cr-accent); color: var(--cr-on-accent); }
+.cr-btn[data-variant="ai"]:hover,
+.cr-btn--ai:hover { background: var(--cr-accent-ink); }
+
+/* IA secundaria: contorno violeta sobre blanco */
+.cr-btn[data-variant="ai-outline"],
+.cr-btn--ai-outline {
+  background: var(--cr-bg);
+  color: var(--cr-accent-ink);
+  border-color: var(--cr-accent-tint-2);
+}
+.cr-btn[data-variant="ai-outline"]:hover,
+.cr-btn--ai-outline:hover { background: var(--cr-accent-tint); border-color: var(--cr-accent); }
+
+/* Tamanos */
+.cr-btn--sm { height: 28px; padding: 0 var(--cr-s3); font-size: 12px; }
+.cr-btn--lg { height: 40px; padding: 0 var(--cr-s5); font-size: 14px; }
+.cr-btn--block { display: flex; width: 100%; }
+
+.cr-btn-row { display: flex; flex-wrap: wrap; gap: var(--cr-s2); align-items: center; }
+
+/* --------------------------------------------------------------------------
+   12 · FORMULARIOS
+   -------------------------------------------------------------------------- */
+
+.cr-field { margin-bottom: var(--cr-s4); }
+
+.cr-field__label,
+.cr-field-label {
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cr-ink-2);
+  display: flex;
+  align-items: center;
+  gap: var(--cr-s2);
+  margin-bottom: 6px;
+}
+
+.cr-input,
+.cr-select,
+.cr-textarea {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px var(--cr-s3);
+  border: 1px solid var(--cr-line-2);
+  border-radius: var(--cr-r-xs);
+  background: var(--cr-bg);
+  color: var(--cr-ink);
+  font-family: var(--cr-font);
+  font-size: 13px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.cr-textarea { min-height: 88px; resize: vertical; }
+
+.cr-input:hover,
+.cr-select:hover,
+.cr-textarea:hover { border-color: var(--cr-ink-3); }
+
+.cr-input:focus,
+.cr-select:focus,
+.cr-textarea:focus {
+  outline: none;
+  border-color: var(--cr-accent);
+  box-shadow: var(--cr-ring);
+}
+
+.cr-input::placeholder,
+.cr-textarea::placeholder { color: var(--cr-ink-3); }
+
+.cr-input:disabled,
+.cr-select:disabled { background: var(--cr-surface-2); color: var(--cr-ink-3); cursor: not-allowed; }
+
+/* Campos de dato de máquina: RFC, UUID, códigos, montos */
+.cr-input[data-machine="true"] { font-family: var(--cr-mono); font-size: 12px; }
+
+/* Campo pre-llenado por extracción automática */
+.cr-input[data-auto="true"],
+.cr-select[data-auto="true"] {
+  border-color: var(--cr-accent-tint-2);
+  background: var(--cr-accent-tint);
+}
+
+.cr-field__help { font-size: 12px; color: var(--cr-ink-3); margin-top: 6px; }
+.cr-field__error { font-size: 12px; color: var(--cr-danger-ink); margin-top: 6px; }
+.cr-field[data-invalid="true"] .cr-input { border-color: var(--cr-danger); }
+.cr-field[data-invalid="true"] .cr-input:focus { box-shadow: var(--cr-ring-danger); }
+
+.cr-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 var(--cr-s5); }
+
+/* --------------------------------------------------------------------------
+   13 · STEPPER — flujos de carga de factura
+   -------------------------------------------------------------------------- */
+
+.cr-steps {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--cr-line);
+  margin-bottom: var(--cr-s6);
+}
+
+.cr-step {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-s2);
+  padding: 0 var(--cr-s5) var(--cr-s3) 0;
+  margin-right: var(--cr-s5);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--cr-ink-3);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+/* El número del paso en pastilla circular, no en mono con tracking. */
+.cr-step__num {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cr-surface-3);
+  color: var(--cr-ink-3);
+  font-family: var(--cr-font);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.cr-step[data-state="current"] { color: var(--cr-ink); font-weight: 600; border-bottom-color: var(--cr-ink); }
+.cr-step[data-state="current"] .cr-step__num { background: var(--cr-ink); color: var(--cr-on-accent); }
+.cr-step[data-state="done"] { color: var(--cr-ink-2); }
+.cr-step[data-state="done"] .cr-step__num { background: var(--cr-ok-tint); color: var(--cr-ok-ink); }
+
+/* --------------------------------------------------------------------------
+   14 · CARGA DE ARCHIVOS
+   -------------------------------------------------------------------------- */
+
+.cr-drop {
+  border: 1.5px dashed var(--cr-line-2);
+  border-radius: var(--cr-r-md);
+  background: var(--cr-surface-2);
+  padding: var(--cr-s8) var(--cr-s5);
+  text-align: center;
+  color: var(--cr-ink-2);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.cr-drop__title { margin: 0; font-weight: 600; color: var(--cr-ink); }
+.cr-drop__hint { margin: var(--cr-s1) auto var(--cr-s4); }
+
+.cr-drop[data-active="true"] { border-color: var(--cr-accent); background: var(--cr-accent-tint); }
+.cr-drop[data-invalid="true"] { border-color: var(--cr-danger); background: var(--cr-danger-tint); }
+
+.cr-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cr-s3);
+  padding: var(--cr-s3) var(--cr-s4);
+  border: 1px solid var(--cr-line-soft);
+  border-radius: var(--cr-r-xs);
+  background: var(--cr-bg);
+  margin-bottom: var(--cr-s2);
+}
+
+.cr-file__name { font-family: var(--cr-mono); font-size: 12px; color: var(--cr-ink); }
+.cr-file__size { font-size: 12px; color: var(--cr-ink-3); font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   15 · LÍNEA DE TIEMPO — bitácora de la factura
+   -------------------------------------------------------------------------- */
+
+.cr-timeline { list-style: none; margin: 0; padding: 0 0 0 var(--cr-s4); border-left: 1px solid var(--cr-line); }
+
+.cr-timeline__item { position: relative; padding: 0 0 var(--cr-s5) var(--cr-s5); }
+
+.cr-timeline__item::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--cr-s4) - 5px);
+  top: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cr-ink-3);
+  border: 2px solid var(--cr-bg);
+  box-shadow: 0 0 0 3px var(--cr-surface-2);
+}
+
+.cr-timeline__item[data-tone="ok"]::before { background: var(--cr-ok); box-shadow: 0 0 0 3px var(--cr-ok-tint); }
+.cr-timeline__item[data-tone="warn"]::before { background: var(--cr-warn); box-shadow: 0 0 0 3px var(--cr-warn-tint); }
+.cr-timeline__item[data-tone="danger"]::before { background: var(--cr-danger); box-shadow: 0 0 0 3px var(--cr-danger-tint); }
+.cr-timeline__item[data-tone="ai"]::before { background: var(--cr-accent); box-shadow: 0 0 0 3px var(--cr-accent-tint); }
+
+.cr-timeline__time {
+  font-family: var(--cr-font);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--cr-ink-3);
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.cr-timeline__title { font-weight: 600; color: var(--cr-ink); }
+.cr-timeline__actor { font-size: 12px; color: var(--cr-ink-2); }
+
+/* --------------------------------------------------------------------------
+   16 · ESTADOS VACÍOS Y BLOQUEADOS
+   -------------------------------------------------------------------------- */
+
+.cr-empty {
+  border: 1px solid var(--cr-line-soft);
+  border-radius: var(--cr-r-md);
+  background: var(--cr-bg);
+  padding: var(--cr-s10) var(--cr-s6);
+  text-align: center;
+  color: var(--cr-ink-2);
+}
+
+.cr-empty__title { font-weight: 600; font-size: 15px; color: var(--cr-ink); margin-bottom: var(--cr-s2); }
+.cr-empty p { margin: 0 auto var(--cr-s4); max-width: 46ch; }
+
+/* --------------------------------------------------------------------------
+   17 · PAGINACIÓN
+   -------------------------------------------------------------------------- */
+
+.cr-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--cr-s3);
+  font-family: var(--cr-font);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--cr-ink-3);
+}
+.cr-pager a { color: var(--cr-ink); font-weight: 500; }
+
+/* --------------------------------------------------------------------------
+   18 · MODAL
+   -------------------------------------------------------------------------- */
+
+.cr-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 17, 22, 0.40);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  padding: var(--cr-s5);
+  z-index: 40;
+}
+
+.cr-modal {
+  width: min(520px, 100%);
+  background: var(--cr-bg);
+  border: 1px solid var(--cr-line-soft);
+  border-radius: var(--cr-r-lg);
+  box-shadow: var(--cr-shadow-2);
+  padding: var(--cr-s6);
+}
+
+.cr-modal__head { margin-bottom: var(--cr-s4); }
+.cr-modal__foot { display: flex; justify-content: flex-end; gap: var(--cr-s2); margin-top: var(--cr-s6); }
+
+/* --------------------------------------------------------------------------
+   19 · ACORDEÓN — orden de compra › artículo › entradas
+   -------------------------------------------------------------------------- */
+
+/* Tres niveles en una sola pantalla, sin salir a otra pagina.
+ *
+ * Se arma con <details>/<summary> nativos y NO con estado en React, a
+ * proposito: la pantalla es un componente de servidor, y abrir un renglon no
+ * deberia costar ni hidratacion ni un viaje de vuelta. De regalo, el navegador
+ * ya trae el teclado y el foco resueltos, y Ctrl+F encuentra lo cerrado.
+ *
+ * Vale la regla de siempre: el estatus vive en el dot, nunca en el relleno de
+ * la fila. Aqui la unica superficie que cambia es la del renglon abierto, y es
+ * jerarquia —dice donde estas parado—, no estado. */
+
+.cr-acc {
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-sm);
+  background: var(--cr-bg);
+  margin-bottom: var(--cr-s2);
+  overflow: hidden;
+}
+
+.cr-acc > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--cr-s3) var(--cr-s4);
+  display: grid;
+  grid-template-columns: var(--cr-acc-cols);
+  gap: var(--cr-s4);
+  align-items: center;
+  transition: background 120ms ease;
+}
+
+/* Safari sigue pintando su triangulo si no se le quita por separado. */
+.cr-acc > summary::-webkit-details-marker { display: none; }
+.cr-acc > summary::marker { content: ''; }
+
+.cr-acc > summary:hover { background: var(--cr-surface-2); }
+.cr-acc[open] > summary {
+  background: var(--cr-surface-2);
+  border-bottom: 1px solid var(--cr-line-soft);
+}
+
+/* El chevron es el unico adorno de la fila: gira, no cambia de forma. */
+.cr-acc__chev {
+  width: 9px;
+  height: 9px;
+  border-right: 1.5px solid var(--cr-ink-3);
+  border-bottom: 1.5px solid var(--cr-ink-3);
+  transform: rotate(-45deg);
+  transition: transform 0.12s ease;
+  justify-self: center;
+}
+.cr-acc[open] > summary .cr-acc__chev { transform: rotate(45deg); }
+
+.cr-acc__body { padding: var(--cr-s4); background: var(--cr-surface-2); }
+
+/* Encabezado de columnas del nivel 1. Repite la rejilla del summary para que
+   los titulos caigan exactamente sobre su dato. */
+.cr-acc-cols {
+  display: grid;
+  grid-template-columns: var(--cr-acc-cols);
+  gap: var(--cr-s4);
+  align-items: center;
+  padding: var(--cr-s2) var(--cr-s4);
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cr-ink-3);
+}
+
+/* Nivel 1 · la orden de compra */
+.cr-acc[data-nivel="oc"],
+.cr-acc-cols[data-nivel="oc"] {
+  --cr-acc-cols: 10px minmax(96px, 0.9fr) minmax(88px, 0.8fr) minmax(88px, 0.8fr) minmax(120px, 1.4fr) minmax(120px, 1fr) minmax(132px, 1.1fr);
+}
+
+/* Nivel 2 · el articulo. Va sobre la superficie del cuerpo, sin borde propio:
+   dos marcos anidados leen como dos cajas y no como una jerarquia. */
+.cr-acc[data-nivel="articulo"],
+.cr-acc-cols[data-nivel="articulo"] {
+  --cr-acc-cols: 10px minmax(150px, 2fr) repeat(4, minmax(58px, 0.7fr)) minmax(78px, 0.9fr) minmax(92px, 1fr);
+}
+
+.cr-acc[data-nivel="articulo"] {
+  border-color: var(--cr-line-soft);
+  border-radius: var(--cr-r-xs);
+  box-shadow: none;
+  margin-bottom: var(--cr-s1);
+}
+.cr-acc[data-nivel="articulo"] > summary { padding: var(--cr-s2) var(--cr-s3); }
+.cr-acc[data-nivel="articulo"][open] > summary { background: var(--cr-surface-3); }
+.cr-acc[data-nivel="articulo"] .cr-acc__body { padding: var(--cr-s3); background: var(--cr-bg); }
+.cr-acc-cols[data-nivel="articulo"] { padding: var(--cr-s1) var(--cr-s3); }
+
+/* Celdas */
+.cr-acc__cell { min-width: 0; }
+.cr-acc__cell[data-align="right"] { text-align: right; }
+
+/* Titulo y subtitulo van uno DEBAJO del otro. Los dos se escriben como <span>
+   en las pantallas —ver ordenes/page.tsx— y sin `display: block` se pegaban en
+   el mismo renglon sin separacion: "Distribuidora del NortePRV-00412". */
+.cr-acc__title { display: block; font-weight: 500; color: var(--cr-ink); overflow-wrap: anywhere; }
+.cr-acc__sub {
+  display: block;
+  font-size: 12px;
+  color: var(--cr-ink-3);
+  overflow-wrap: anywhere;
+}
+
+/* La entrada abierta pide accion. Se marca con una guia de 2px a la izquierda
+   —el ancla que el ojo sigue al bajar por la lista—, no rellenando la fila. */
+.cr-acc__pending { border-left: 2px solid var(--cr-warn); }
+
+@media (max-width: 900px) {
+  /* En movil la rejilla se apila: cada celda con su etiqueta encima, igual que
+     .cr-table--stack. Mantener siete columnas aqui las dejaria ilegibles. */
+  .cr-acc > summary,
+  .cr-acc[data-nivel="oc"],
+  .cr-acc[data-nivel="articulo"] { --cr-acc-cols: 10px 1fr; }
+  .cr-acc > summary { gap: var(--cr-s2) var(--cr-s3); }
+  .cr-acc > summary > .cr-acc__cell:not(:first-of-type) { grid-column: 2; }
+  .cr-acc-cols { display: none; }
+  .cr-acc__cell[data-align="right"] { text-align: left; }
+  .cr-acc__cell[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-family: var(--cr-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cr-ink-3);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   22 · CONTROLES Y UTILIDADES DE LA SPEC
+
+   Lo que la spec v1.0 nombra y el portal todavia no tenia: el control
+   segmentado, el slider y las utilidades de superficie y tinta.
+   -------------------------------------------------------------------------- */
+
+/* Control segmentado — sustituye a un <Tabs> cuando las opciones son pocas y
+   excluyentes. El activo se marca con tinta solida, no con violeta. */
+.cr-segment {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-sm);
+  background: var(--cr-surface-2);
+}
+
+.cr-segment__item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-decoration: none;
+  border-radius: var(--cr-r-xs);
+  padding: 5px var(--cr-s3);
+  font-family: var(--cr-font);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cr-ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.cr-segment__item:hover { color: var(--cr-ink); text-decoration: none; }
+
+.cr-segment__item--active,
+.cr-segment__item[aria-selected="true"],
+.cr-segment__item[aria-current="page"] {
+  background: var(--cr-bg);
+  color: var(--cr-ink);
+  box-shadow: inset 0 0 0 1px var(--cr-line);
+}
+
+.cr-segment__item:focus-visible { outline: none; box-shadow: var(--cr-ring); }
+
+/* El conteo que acompana a cada pestana es una cifra: mono y en tinta apagada. */
+.cr-segment__count {
+  font-family: var(--cr-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cr-ink-3);
+  margin-left: 6px;
+}
+.cr-segment__item[aria-current="page"] .cr-segment__count { color: var(--cr-ink-2); }
+
+/* Pestanas de nivel 1 — subrayado, no segmentado.
+ *
+ * El segmentado se cambio por subrayado porque esta pantalla tiene DOS ejes de
+ * filtro anidados —la vista y, dentro de ella, los chips— y con los dos en
+ * cajas del mismo tamano no se leia cual manda: el chip activo, en tinta
+ * solida, gritaba mas que la pestana activa, que solo se marcaba con fondo
+ * blanco. El ojo aterrizaba en "Pagadas" y creia que ese era el modo de la
+ * pantalla.
+ *
+ * Subrayado arriba y chips debajo separa los niveles sin gastar ninguna caja:
+ * la linea a todo el ancho dice "por encima se elige la vista, por debajo se
+ * afina dentro". El segmentado sigue siendo lo correcto para un eje unico y
+ * suelto —lo usa /entradas—, no para uno que manda sobre otro.
+ */
+.cr-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--cr-s5);
+  border-bottom: 1px solid var(--cr-line);
+}
+
+.cr-tabs__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  /* El -1px monta el subrayado sobre el hairline del contenedor en vez de
+     apilarse debajo: si no, el activo queda 2px mas bajo que los demas. */
+  margin-bottom: -1px;
+  padding: 0 2px 9px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  text-decoration: none;
+  font-family: var(--cr-font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cr-ink-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.cr-tabs__item:hover {
+  color: var(--cr-ink);
+  text-decoration: none;
+  border-bottom-color: var(--cr-line-2);
+}
+
+.cr-tabs__item[aria-current="page"] {
+  color: var(--cr-ink);
+  border-bottom-color: var(--cr-ink);
+}
+
+.cr-tabs__item:focus-visible {
+  outline: none;
+  border-radius: var(--cr-r-xs);
+  box-shadow: var(--cr-ring);
+}
+
+/* El conteo que acompana a cada pestana es una cifra: mono y en tinta apagada. */
+.cr-tabs__count {
+  font-family: var(--cr-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cr-ink-3);
+}
+.cr-tabs__item[aria-current="page"] .cr-tabs__count { color: var(--cr-ink-2); }
+
+/*
+ * Bloque de filtros de un listado: pestanas arriba, chips y buscador debajo.
+ *
+ * DOS RENGLONES, no tres apilados ni uno solo. Los tres controles en una fila
+ * —como estaba— ahorraban alto pero mezclaban los dos niveles; apilados en tres
+ * se comian ~120px antes de que empezara la tabla. Dos renglones dan la
+ * jerarquia sin gastar la pantalla: el primero es la vista, el segundo la
+ * acota.
+ */
+.cr-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cr-s3);
+  margin-bottom: var(--cr-s5);
+}
+.cr-filtros > * { margin-bottom: 0; }
+
+/* Segundo renglon: chips a la izquierda, buscador pegado al borde derecho. */
+.cr-filtros__fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cr-s3);
+}
+.cr-filtros__chips { flex: 0 1 auto; }
+
+/* ANCHO FIJO a proposito. Antes el buscador era elastico y se pegaba a la
+   derecha con `margin-left: auto`, asi que su caja cambiaba de tamano al
+   cambiar de pestana —cada pestana tiene distinto numero de chips— y el boton
+   "Limpiar" la encogia otro tanto al aparecer. La fila entera bailaba entre
+   navegaciones. Con ancho fijo, lo unico que se mueve es lo que el usuario
+   pidio que se moviera. */
+.cr-filtros__buscar { flex: 0 0 auto; width: 340px; max-width: 100%; }
+
+/*
+ * Buscador: input y boton en UNA sola caja, no dos controles sueltos.
+ *
+ * Sueltos en un `.cr-btn-row` se leian como dos cosas que hacen dos cosas. Son
+ * una: escribir y buscar. La lupa va dentro, contra el borde derecho, y
+ * "Limpiar" aparece dentro tambien —como una x— para no ensanchar el bloque.
+ */
+.cr-search {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--cr-line-2);
+  border-radius: var(--cr-r-xs);
+  background: var(--cr-bg);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.cr-search:focus-within {
+  border-color: var(--cr-accent);
+  box-shadow: var(--cr-ring);
+}
+
+/* El input pierde su propia caja: la caja ahora es `.cr-search`. Sin esto
+   habria dos bordes concentricos y dos anillos de foco. */
+.cr-search__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 7px 10px;
+  font-family: var(--cr-font);
+  font-size: 13px;
+  color: var(--cr-ink);
+}
+.cr-search__input:focus { outline: none; box-shadow: none; }
+.cr-search__input::placeholder { color: var(--cr-ink-3); }
+/* La x nativa de WebKit duplicaria el boton de limpiar. */
+.cr-search__input::-webkit-search-cancel-button { display: none; }
+
+.cr-search__accion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  align-self: stretch;
+  border: 0;
+  background: transparent;
+  color: var(--cr-ink-3);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+.cr-search__accion:hover { color: var(--cr-ink); text-decoration: none; }
+.cr-search__accion:focus-visible { outline: none; color: var(--cr-ink); box-shadow: var(--cr-ring); }
+.cr-search__accion > svg { width: 15px; height: 15px; }
+
+/* Divide "limpiar" de "buscar" cuando conviven, para que no se lean como un
+   unico boton de dos glifos. */
+.cr-search__accion + .cr-search__accion { border-left: 1px solid var(--cr-line); }
+
+/* Mientras la busqueda viaja al servidor. Se apaga la caja un punto en vez de
+   poner un spinner: a 350 ms de espera un girador aparece y desaparece tan
+   rapido que solo hace ruido, pero sin ninguna señal la lista parece colgada.
+   `pointer-events` sigue vivo a proposito: se puede seguir escribiendo. */
+.cr-search[data-pendiente="true"] { border-color: var(--cr-line); }
+.cr-search[data-pendiente="true"] .cr-search__input { color: var(--cr-ink-2); }
+.cr-search[data-pendiente="true"] .cr-search__accion { opacity: 0.45; }
+
+/* En movil el buscador ocupa la fila entera: 340px al lado de los chips
+   obligaria a envolver de todos modos, y medio ancho no cabe. */
+@media (max-width: 640px) {
+  .cr-filtros__buscar { width: 100%; }
+  .cr-filtros__fila { justify-content: flex-start; }
+}
+
+/* Slider — el pulgar es el unico control del sistema en violeta por defecto,
+   porque solo se usa para ajustar umbrales de cotejo. */
+.cr-range {
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: var(--cr-r-pill);
+  background: var(--cr-surface-3);
+  outline: none;
+}
+
+.cr-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cr-accent);
+  border: 2px solid var(--cr-bg);
+  cursor: pointer;
+}
+
+.cr-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cr-accent);
+  border: 2px solid var(--cr-bg);
+  cursor: pointer;
+}
+
+.cr-range:focus-visible::-webkit-slider-thumb { box-shadow: var(--cr-ring); }
+.cr-range:focus-visible::-moz-range-thumb { box-shadow: var(--cr-ring); }
+
+/* Utilidades ------------------------------------------------------------- */
+
+.cr-divider { height: 1px; background: var(--cr-line); border: 0; margin: var(--cr-s5) 0; }
+.cr-surface { background: var(--cr-bg); }
+.cr-surface-2 { background: var(--cr-surface-2); }
+.cr-bordered { border: 1px solid var(--cr-line); }
+.cr-round { border-radius: var(--cr-r-sm); }
+
+/* Tinta. `.cr-ink-3` hereda la nota de contraste del token: no lo uses para
+   texto que haya que leer con atencion. */
+.cr-ink { color: var(--cr-ink); }
+.cr-ink-2 { color: var(--cr-ink-2); }
+.cr-ink-3 { color: var(--cr-ink-3); }
+.cr-accent-text { color: var(--cr-accent-ink); }
+
+/* Ritmo vertical --------------------------------------------------------- */
+
+/* Las pantallas repetian `style={{ marginBottom: 0 }}` y `marginTop: var(--cr-sN)`
+   en dos docenas de sitios. La spec pide que el aire lo ponga el sistema, asi
+   que se nombra aqui: un `style` suelto es una medida que nadie vuelve a mirar. */
+.cr-flush { margin-bottom: 0; }
+.cr-mt-2 { margin-top: var(--cr-s2); }
+.cr-mt-3 { margin-top: var(--cr-s3); }
+.cr-mt-4 { margin-top: var(--cr-s4); }
+.cr-mt-5 { margin-top: var(--cr-s5); }
+.cr-right { text-align: right; }
+
+/* Fila horizontal de controles con separacion de 8px. `.cr-btn-row` ya lo hace
+   para botones; esta es la version generica para cualquier par de elementos. */
+.cr-row { display: flex; align-items: center; gap: var(--cr-s2); flex-wrap: wrap; }
+.cr-row--tight { gap: var(--cr-s1); }
+.cr-row--wide { gap: var(--cr-s3); }
+
+.cr-mt-0 { margin-top: 0; }
+.cr-mb-2 { margin-bottom: var(--cr-s2); }
+.cr-mb-4 { margin-bottom: var(--cr-s4); }
+.cr-push { margin-left: auto; }
+.cr-btn-row--center { justify-content: center; }
+
+/* Columna de bloques con 12px entre ellos. */
+.cr-stack { display: grid; gap: var(--cr-s3); }
+
+/* Visible solo para el lector de pantalla. Para etiquetas que el diseno resuelve
+   con un marcador de posicion o un icono, pero que siguen haciendo falta: sin
+   <label> asociado, un campo no se puede anunciar ni activar por su nombre. */
+.cr-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Campo de cantidad: estrecho y alineado a la derecha, como la columna de una
+   tabla. Un input de cantidad a ancho completo invita a escribir un parrafo. */
+.cr-input--num { max-width: 120px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   23 · MAESTRO-DETALLE — lista a la izquierda, ficha fija a la derecha
+
+   El patron estandar para "elegir un item y verlo/actuarlo", en vez de abrir un
+   modal. Copiado del de Industria Real (app/calidad/page.tsx).
+
+   POR QUE NO UN MODAL: en una pantalla de trabajo se comparan items entre si
+   —esta orden contra la de al lado—, y un modal tapa justo la lista que hay que
+   comparar. Con dos columnas la lista sigue a la vista y cambiar de item es un
+   clic, no cerrar-abrir.
+
+   POR QUE NO UN ACORDEON: desplegar dentro de la lista empuja hacia abajo todo
+   lo que viene despues, asi que abrir el tercer item manda el cuarto fuera de
+   la pantalla. La ficha a la derecha no mueve nada.
+   -------------------------------------------------------------------------- */
+
+.cr-md {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--cr-s5);
+  align-items: start;
+}
+
+/* La segunda columna SOLO existe cuando hay una orden abierta. Reservarla
+   vacia dejaba medio ancho de pantalla en blanco esperando un clic que puede
+   no llegar, y la lista —que es lo que se viene a leer— trabajando con la
+   mitad del sitio. Se paga que al abrir la lista se estreche; a cambio, quien
+   solo mira no carga con el hueco.
+   A 1100px hay sitio para las dos sin que la lista se estrangule; por debajo
+   se apilan y la ficha baja al final. */
+@media (min-width: 1100px) {
+  .cr-md[data-abierta="true"] { grid-template-columns: minmax(0, 1fr) minmax(380px, 440px); }
+}
+
+/* La ficha acompana el scroll de la lista: con listas largas, bajar a la ultima
+   fila dejaba la ficha arriba, fuera de la vista. */
+.cr-md__detalle { position: sticky; top: var(--cr-s4); }
+
+/* Altura acotada + scroll propio: sin esto una orden con veinte articulos
+   estira la ficha y rompe el `sticky`. */
+.cr-md__panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+}
+
+.cr-md__cuerpo { flex: 1; min-height: 0; overflow-y: auto; }
+.cr-md__pie { flex: none; padding: var(--cr-s3) 18px; border-top: 1px solid var(--cr-line); }
+
+/* Renglon de la lista. Es un enlace, no un boton: la seleccion vive en la URL
+   —se comparte y se recarga— y asi la pantalla sigue siendo Server Component. */
+.cr-md__fila {
+  display: grid;
+  grid-template-columns: var(--cr-md-cols, minmax(0, 1fr));
+  gap: var(--cr-s3);
+  align-items: center;
+  padding: var(--cr-s3) 18px;
+  border-bottom: 1px solid var(--cr-line-soft);
+  color: var(--cr-ink-2);
+  font-size: 13px;
+}
+.cr-md__fila:last-child { border-bottom: 0; }
+
+/* La cabecera de columnas comparte la rejilla de las filas para que cuadren,
+   pero es un rotulo, no un enlace: ni se resalta ni responde al hover. */
+.cr-md__cabecera {
+  font-family: var(--cr-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cr-ink-3);
+  border-bottom: 1px solid var(--cr-line);
+  cursor: default;
+}
+.cr-md__cabecera:hover { background: transparent; }
+
+/* Los cuatro campos: # PO, fecha de emision, fecha solicitada y el detalle. La
+   lista resume y la ficha detalla, asi que aqui solo va lo que sirve para
+   ELEGIR una orden; los importes y el avance viven en la ficha. */
+.cr-md__fila {
+  --cr-md-cols: minmax(72px, 0.7fr) minmax(80px, 0.8fr) minmax(120px, 1.4fr) minmax(92px, 0.9fr) minmax(104px, 1.1fr);
+}
+
+.cr-md__fila:hover { background: rgba(10, 12, 18, 0.045); text-decoration: none; }
+
+/* El seleccionado se marca con ANILLO DE TINTA por dentro, nunca en violeta:
+   el acento significa "lo hizo el sistema", y esto lo elige la persona. El
+   anillo va con `inset` para no desplazar la fila un pixel al activarse. */
+.cr-md__fila[aria-current="page"] {
+  background: var(--cr-surface-2);
+  box-shadow: inset 0 0 0 1px var(--cr-ink);
+  color: var(--cr-ink);
+}
+
+.cr-md__celda { min-width: 0; }
+.cr-md__celda[data-align="right"] { text-align: right; }
+.cr-md__titulo { display: block; font-weight: 500; color: var(--cr-ink); overflow-wrap: anywhere; }
+.cr-md__sub { display: block; font-size: 12px; color: var(--cr-ink-3); overflow-wrap: anywhere; }
+
+/* Tira de cifras del encabezado de la ficha: tres datos, separados por linea. */
+.cr-md__cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--cr-line-soft);
+}
+.cr-md__cifra { padding: var(--cr-s3) var(--cr-s2); text-align: center; }
+.cr-md__cifra + .cr-md__cifra { border-left: 1px solid var(--cr-line-soft); }
+.cr-md__cifra > .cr-label { margin-bottom: 2px; }
+
+/* Bloque de un articulo dentro de la ficha. */
+.cr-md__bloque { padding: var(--cr-s4) 18px; border-bottom: 1px solid var(--cr-line-soft); }
+.cr-md__bloque:last-child { border-bottom: 0; }
+
+/* Pares dato/valor a dos columnas: en 440px una tabla de ocho columnas no cabe,
+   asi que el detalle del articulo se lee en vertical. */
+.cr-md__datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cr-s2) var(--cr-s3);
+  margin-top: var(--cr-s3);
+}
+.cr-md__dato { display: flex; justify-content: space-between; gap: var(--cr-s2); font-size: 12px; }
+.cr-md__dato > dt { color: var(--cr-ink-3); }
+.cr-md__dato > dd { margin: 0; font-family: var(--cr-mono); color: var(--cr-ink); }
+
+/* Una factura dentro de su entrada: sangrada, para que se lea colgando de
+   ella y no como otra entrada mas. */
+.cr-md__factura {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cr-s2);
+  padding: 3px 0 3px var(--cr-s3);
+  border-left: 1px solid var(--cr-line);
+  font-size: 12px;
+}
+
+/* Entradas de mercancia dentro de la ficha, en lista y no en tabla. */
+.cr-md__entrada {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cr-s2);
+  padding: 6px 0;
+  border-top: 1px solid var(--cr-line-soft);
+  font-size: 12px;
+}
+
+/* Estado vacio: la ficha existe aunque no haya nada elegido, para que la
+   columna no aparezca y desaparezca moviendo la lista de sitio. */
+
+/* --------------------------------------------------------------------------
+   20 · RESPONSIVE
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .cr-body { flex-direction: column; }
+
+  /* Sin sidebar debajo con que alinearse, la columna de marca deja de medir
+     248px y suelta su borde: la raya no continuaria en nada. El codigo de
+     proveedor se va —en 420px no cabe, y el nombre ya dice quien es—. */
+  .cr-brand {
+    width: auto;
+    border-right: 0;
+    padding: 0 0 0 var(--cr-s4);
+  }
+  .cr-topbar__context { padding: 0 var(--cr-s3); }
+  .cr-topbar__right { padding-right: var(--cr-s4); }
+  .cr-topbar__context > .cr-brand__context { display: none; }
+
+  .cr-sidebar {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--cr-line-soft);
+    padding: var(--cr-s2) var(--cr-s3);
+    display: flex;
+    gap: var(--cr-s2);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .cr-sidebar::-webkit-scrollbar { display: none; }
+
+  .cr-nav__group { display: flex; gap: var(--cr-s1); margin: 0; }
+  .cr-nav__label { display: none; }
+  .cr-nav__item { white-space: nowrap; margin-bottom: 0; }
+
+  .cr-main { padding: var(--cr-s5) var(--cr-s4) var(--cr-s8); min-width: 0; }
+  .cr-page-head { flex-direction: column; gap: var(--cr-s3); }
+  .cr-page-head__meta { text-align: left; }
+
+  .cr-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--cr-s2); }
+  .cr-kpi { padding: var(--cr-s3) var(--cr-s4); }
+  .cr-kpi__value { font-size: 26px; }
+
+  /* Tablas densas: se convierten en fichas apiladas */
+  /* Ya apiladas no desbordan, y el scroll horizontal solo estorbaria al gesto
+     vertical del pulgar. Pero SOLO las apiladas: la regla se escribia sobre
+     `.cr-table-scroll` a secas y apagaba el scroll tambien a las tablas que se
+     quedan en rejilla —el cotejo, las ordenes—, que entonces desbordaban el
+     documento entero y sacaban barra horizontal en el body. */
+  .cr-table-scroll:has(> .cr-table--stack) {
+    overflow-x: visible; border: 0; box-shadow: none; background: transparent;
+  }
+  .cr-table--stack { border: 0; box-shadow: none; background: transparent; }
+  .cr-table--stack thead { display: none; }
+  .cr-table--stack tbody tr {
+    display: block;
+    background: var(--cr-bg);
+    border: 1px solid var(--cr-line-soft);
+    border-radius: var(--cr-r-md);
+    padding: var(--cr-s3) var(--cr-s4);
+    margin-bottom: var(--cr-s3);
+  }
+  .cr-table--stack tbody tr:hover td { background: transparent; }
+  .cr-table--stack tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cr-s4);
+    border: 0;
+    padding: 5px 0;
+    text-align: right;
+  }
+  .cr-table--stack tbody td::before {
+    content: attr(data-label);
+    font-family: var(--cr-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--cr-ink-3);
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* --------------------------------------------------------------------------
+   21 · IMPRESIÓN — el portal debe imprimirse en blanco y negro sin perder jerarquía
+   -------------------------------------------------------------------------- */
+
+@media print {
+  .cr-sidebar, .cr-topbar, .cr-btn, .cr-pager { display: none; }
+  .cr-main { padding: 0; max-width: none; }
+  .cr-shell, body { background: #fff; }
+  .cr-card, .cr-table, .cr-kpi, .cr-acc { break-inside: avoid; box-shadow: none; }
+  .cr-table-scroll { box-shadow: none; }
+  body { font-size: 10pt; }
+}

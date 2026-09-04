@@ -71,6 +71,22 @@ export interface LineaEntrada {
   readonly itemCode?: string | null
   readonly cantidad: Decimal
   readonly almacen?: string | null
+  /**
+   * Importe de la linea sin IVA (`LineTotal`) y su impuesto (`TaxTotal`).
+   *
+   * Opcionales porque el cotejo por cantidades no los necesita; los pide el
+   * estado de cuenta, donde la conversacion con el proveedor es de importes.
+   */
+  readonly importe?: Decimal
+  readonly impuesto?: Decimal
+  /**
+   * Lo que de esta linea de entrada sigue SIN facturar en Business One.
+   *
+   * Cero significa que B1 ya la facturo y cerro el renglon. Igual que `importe`,
+   * el cotejo por cantidades no lo necesita: lo pide el estado de cuenta, para
+   * no ofrecer "cargar factura" sobre una entrada que B1 ya dio por facturada.
+   */
+  readonly porFacturar?: Decimal
 }
 
 export type EstadoRenglon =
@@ -95,6 +111,21 @@ export interface RecepcionRenglon {
   /** Lo que B1 sigue esperando. */
   readonly pendiente: Decimal
   /**
+   * Lo que todavia se puede recibir de verdad: `min(pendiente, pedido - recibido)`.
+   *
+   * POR QUE NO BASTA `pendiente`. `RemainingOpenQuantity` tampoco baja siempre
+   * cuando llega la mercancia. Caso real de la instancia de KPS, orden 1120: el
+   * renglon sigue `bost_Open` y B1 contesta pendiente 10 aunque esas 10 ya se
+   * recibieron, y luego rechaza la entrada con el error (81) de tolerancia.
+   * Ofrecer `pendiente` manda a teclear una cantidad que B1 va a rechazar
+   * DESPUES de llenar el formulario.
+   *
+   * El minimo lo corrige por los dos lados: resta lo que fisicamente llego, y a
+   * la vez respeta el renglon cerrado a mano —pendiente 0 con piezas
+   * faltantes—, que no admite mas entradas aunque falte mercancia.
+   */
+  readonly recibible: Decimal
+  /**
    * Lo que se cerro sin llegar: `pedido - recibido - pendiente`.
    *
    * Es cero mientras el renglon siga abierto. En cuanto alguien lo cierra sin
@@ -114,6 +145,8 @@ export interface Recepcion {
   readonly pedido: Decimal
   readonly recibido: Decimal
   readonly pendiente: Decimal
+  /** Suma de lo que todavia se puede recibir. Ver `recibible` del renglon. */
+  readonly recibible: Decimal
   readonly sinSurtir: Decimal
   /**
    * Lo que llego de mas, sumando renglones.
@@ -192,6 +225,9 @@ export function calcularRecepcion(input: {
     // negativo que restaria del total de la orden.
     const sinSurtir = Decimal.max(CERO, pedido.minus(recibido).minus(pendiente))
     const excedente = Decimal.max(CERO, recibido.minus(pedido))
+    // El mas restrictivo de los dos limites gana: B1 rechaza tanto pasarse de lo
+    // abierto como recibir contra un renglon que ya tiene toda su mercancia.
+    const recibible = Decimal.min(pendiente, Decimal.max(CERO, pedido.minus(recibido)))
 
     return {
       lineNum: l.lineNum,
@@ -200,6 +236,7 @@ export function calcularRecepcion(input: {
       pedido,
       recibido,
       pendiente,
+      recibible: round3(recibible),
       sinSurtir: round3(sinSurtir),
       excedente: round3(excedente),
       estado: estadoDe(pedido, recibido, pendiente, sinSurtir),
@@ -221,6 +258,7 @@ export function calcularRecepcion(input: {
     pedido: round3(sum(renglones.map((r) => r.pedido))),
     recibido: round3(sum(renglones.map((r) => r.recibido))),
     pendiente: round3(sum(renglones.map((r) => r.pendiente))),
+    recibible: round3(sum(renglones.map((r) => r.recibible))),
     sinSurtir: round3(sum(renglones.map((r) => r.sinSurtir))),
     excedente: round3(sum(renglones.map((r) => r.excedente))),
     renglonesSinSurtir: renglones.filter((r) => r.sinSurtir.gt(0)).length,

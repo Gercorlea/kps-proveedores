@@ -102,11 +102,19 @@ interface Props {
   moneda: string
   totalOc: number
   cancelada: boolean
-  cerrada: boolean
   /** Entradas abiertas de esta orden. Vacio si almacen no ha registrado ninguna. */
   entradas: EntradaOpcion[]
   /** La lectura se corto por el tope de paginas: la lista es un minimo. */
   entradasTruncadas: boolean
+  /**
+   * Si hay alguna entrada de mercancia registrada, este abierta o no.
+   *
+   * `entradas` solo trae las FACTURABLES, asi que su lista vacia significa dos
+   * cosas opuestas —no llego nada, o llego y ya se facturo— y sin este dato la
+   * pantalla las trataba igual: mandaba a registrar una entrada que en el
+   * segundo caso B1 rechazaria.
+   */
+  algoRecibido: boolean
 }
 
 function num(texto: string | undefined): number {
@@ -148,9 +156,9 @@ export default function CargarXml({
   moneda,
   totalOc,
   cancelada,
-  cerrada,
   entradas,
   entradasTruncadas,
+  algoRecibido,
 }: Props) {
   const router = useRouter()
   const input = useRef<HTMLInputElement>(null)
@@ -182,7 +190,24 @@ export default function CargarXml({
    * la entrada.
    */
   const sinEntradas = entradas.length === 0
-  const bloqueado = cancelada || cerrada || sinEntradas
+  /*
+   * UNA ORDEN CERRADA NO BLOQUEA. `cerrada` estaba en esta condicion y era un
+   * fallo: la factura se copia de la ENTRADA (`BaseType: 20`), no de la orden,
+   * asi que el estatus de la orden no decide nada.
+   *
+   * Y no fallaba en un caso raro, sino en el camino normal: cuando llega toda
+   * la mercancia, B1 cierra la orden solo —`bost_Close`—, que es justo el
+   * momento en que el proveedor tiene que facturar. Un proveedor que entregara
+   * de una sola vez no podia facturar NUNCA desde el portal. La pantalla ademas
+   * se contradecia: arriba anunciaba "tienes una entrada lista para facturar" y
+   * aqui decia que no admitia mas facturas.
+   *
+   * Se conservan las otras dos, que si son la regla: una orden cancelada no
+   * admite factura, y sin entrada no hay de donde copiarla. El servidor vuelve
+   * a comprobar la entrada en `resolverEntrada`, asi que no se pierde ninguna
+   * verificacion por quitar esto de aqui.
+   */
+  const bloqueado = cancelada || sinEntradas
 
   async function agregar(lista: FileList) {
     setLeyendo(true)
@@ -309,48 +334,54 @@ export default function CargarXml({
   )
 
   return (
-    <section className="ar-section">
-      <span className="ar-eyebrow">Facturas del proveedor</span>
+    <section className="cr-section">
+      <span className="cr-label">Facturas del proveedor</span>
 
       {bloqueado ? (
-        <div className="ar-info" data-tone={cancelada || cerrada ? 'warn' : 'danger'}>
-          <span className="ar-info__label">
-            {cancelada
-              ? 'Orden cancelada'
-              : cerrada
-                ? 'Orden no abierta'
-                : 'Todavia no se puede facturar'}
+        <div className="cr-info" data-tone={cancelada ? 'warn' : 'danger'}>
+          <span className="cr-info__label">
+            {cancelada ? 'Orden cancelada' : 'Todavia no se puede facturar'}
           </span>
           <p>
             {cancelada
               ? `La OC ${docNum} esta cancelada en Business One. No se puede facturar contra ella.`
-              : cerrada
-                ? `La OC ${docNum} ya no esta abierta en Business One, asi que no admite mas facturas.`
+              : algoRecibido
+                ? `Las entradas de mercancia de la OC ${docNum} ya estan facturadas: Business One las cerro y una entrada cerrada no admite otra factura. Si falta mercancia por llegar, la factura se carga cuando se registre la entrada que la traiga.`
                 : `La OC ${docNum} no tiene ninguna entrada de mercancia abierta en Business One, y la factura se copia de la entrada, no de la orden. Hasta que no se registre lo que llego, no hay contra que facturar.`}
           </p>
-          {sinEntradas && !cancelada && !cerrada ? (
-            <p className="ar-small ar-muted">
+          {sinEntradas && !cancelada ? (
+            <p className="cr-small cr-muted">
               {entradasTruncadas
                 ? 'La lectura de entregas se corto antes de terminar, asi que puede haber alguna que no se alcanzo a leer. Recarga la pagina para volver a intentarlo.'
-                : 'Si la mercancia ya llego, hay que registrar la entrada antes de cargar la factura.'}
+                : algoRecibido
+                  ? // No se invita a registrar otra entrada: la mercancia ya
+                    // entro, y B1 rechazaria la captura.
+                    'Lo recibido y lo facturado de esta orden se ve arriba, en la tabla de lineas.'
+                  : 'Si la mercancia ya llego, hay que registrar la entrada antes de cargar la factura.'}
             </p>
           ) : null}
         </div>
       ) : (
-        <div className="ar-field">
+        <div className="cr-field">
           {/* Contra que entrada de mercancia se factura.
               Va ANTES del XML y no despues porque es la decision que condiciona
               todo lo demas: sin entrada no hay factura posible, y descubrirlo al
               final —con el XML ya cargado— convierte un aviso en un rehacer.
               El caso "no hay ninguna entrada" no llega hasta aqui: bloquea la
-              seccion entera mas arriba. */}
-          <div style={{ marginBottom: '1rem' }}>
-              <label className="ar-field__label" htmlFor="entrada">
+              seccion entera mas arriba.
+
+              CON UNA SOLA ENTRADA NO SE PINTA. Un desplegable de una opcion no
+              es una eleccion: es un tramite. El estado ya la trae seleccionada
+              —ver `entradaElegida`— y la pantalla se titula con ella, asi que
+              enseñarla aqui otra vez solo repite lo que ya se leyo arriba. */}
+          {entradas.length > 1 && (
+          <div className="cr-mb-4">
+              <label className="cr-field__label" htmlFor="entrada">
                 Entrada de mercancia que se factura
               </label>
               <select
                 id="entrada"
-                className="ar-input"
+                className="cr-input"
                 value={entradaElegida}
                 onChange={(e) => setEntradaElegida(e.target.value)}
                 disabled={trabajando}
@@ -363,7 +394,7 @@ export default function CargarXml({
                   </option>
                 ))}
               </select>
-              <p className="ar-small ar-muted">
+              <p className="cr-small cr-muted">
                 Es lo que permite registrar la factura en Business One: alli la factura se copia
                 de la entrada, no de la orden. Cada entrada se factura una sola vez.
                 {entradasTruncadas
@@ -371,8 +402,9 @@ export default function CargarXml({
                   : ''}
               </p>
           </div>
+          )}
 
-          <label className="ar-field__label" htmlFor="xml">
+          <label className="cr-field__label" htmlFor="xml">
             XML del CFDI
           </label>
 
@@ -380,7 +412,7 @@ export default function CargarXml({
               funcione con teclado y con lector de pantalla sin reimplementar
               nada: el propio navegador abre el selector al activarla. */}
           <label
-            className="ar-drop cf-drop"
+            className="cr-drop cf-drop"
             data-active={arrastrando ? 'true' : undefined}
             htmlFor="xml"
             onDragOver={(e) => {
@@ -397,7 +429,7 @@ export default function CargarXml({
             <span className="cf-drop__titulo">
               {arrastrando ? 'Suelta los XML aqui' : 'Arrastra los XML o pulsa para elegirlos'}
             </span>
-            <span className="ar-small">
+            <span className="cr-small">
               Puedes soltar varios a la vez. Solo el XML: los datos fiscales se extraen de el y no
               se captura nada a mano.
             </span>
@@ -419,8 +451,8 @@ export default function CargarXml({
       )}
 
       {leyendo && (
-        <div className="ar-info">
-          <p style={{ margin: 0 }}>Leyendo los XML...</p>
+        <div className="cr-info">
+          <p className="cr-flush">Leyendo los XML...</p>
         </div>
       )}
 
@@ -430,53 +462,53 @@ export default function CargarXml({
             const bloq = bloqueantesDe(f)
             const problema = f.error ?? f.errorAccion ?? bloq[0]?.detalle
             return (
-              <div key={f.id} className="ar-file cf-file" data-mal={problema ? 'si' : undefined}>
+              <div key={f.id} className="cr-file cf-file" data-mal={problema ? 'si' : undefined}>
                 <span className="cf-file__icono" aria-hidden="true">
                   XML
                 </span>
 
                 <span className="cf-file__cuerpo">
-                  <span className="ar-file__name">{f.nombre}</span>
-                  <span className="ar-file__size">
+                  <span className="cr-file__name">{f.nombre}</span>
+                  <span className="cr-file__size">
                     {(f.archivo.size / 1024).toFixed(1)} KB
                     {f.datos
                       ? ` · ${money(num(f.datos.comprobante.total))} ${f.datos.comprobante.moneda} · ${f.datos.conceptos.length} concepto${f.datos.conceptos.length === 1 ? '' : 's'}`
                       : ''}
                   </span>
                   {f.datos && (
-                    <span className="ar-file__size">
+                    <span className="cr-file__size">
                       UUID {f.datos.timbre.uuid.slice(0, 8).toUpperCase()} · {f.datos.emisor.nombre}
                     </span>
                   )}
-                  {problema && <span className="ar-field__error">{problema}</span>}
+                  {problema && <span className="cr-field__error">{problema}</span>}
                 </span>
 
                 <span className="cf-file__acciones">
                   {f.enviada ? (
-                    <span className="ar-status" data-tone="ok">
+                    <span className="cr-status" data-tone="ok">
                       Enviada · {f.folio}
                     </span>
                   ) : f.folio ? (
-                    <span className="ar-status" data-tone="warn">
+                    <span className="cr-status" data-tone="warn">
                       Borrador · {f.folio}
                     </span>
                   ) : !utilizable(f) ? (
-                    <span className="ar-status" data-tone="danger">
+                    <span className="cr-status" data-tone="danger">
                       {f.datos && f.error ? 'Duplicado' : 'No se puede usar'}
                     </span>
                   ) : (
-                    <span className="ar-status">Sin guardar</span>
+                    <span className="cr-status">Sin guardar</span>
                   )}
 
                   {f.xmlFileKey && (
-                    <a className="ar-code" href={`/api/v1/documents/${f.xmlFileKey}`}>
+                    <a className="cr-code" href={`/api/v1/documents/${f.xmlFileKey}`}>
                       Ver
                     </a>
                   )}
                   {!f.folio && (
                     <button
                       type="button"
-                      className="ar-btn"
+                      className="cr-btn"
                       data-variant="ghost"
                       onClick={() => quitar(f.id)}
                       disabled={trabajando}
@@ -490,14 +522,14 @@ export default function CargarXml({
             )
           })}
 
-          <span className="ar-eyebrow" style={{ marginTop: 'var(--ar-s5)' }}>
+          <span className="cr-label cr-mt-5">
             Contraste con la OC {docNum}
           </span>
-          <table className="ar-table ar-matrix">
+          <table className="cr-table cr-matrix">
             <tbody>
               <tr>
                 <td>Total de la orden</td>
-                <td className="ar-code">
+                <td className="cr-code">
                   {money(totalOc)} {moneda}
                 </td>
               </tr>
@@ -505,11 +537,11 @@ export default function CargarXml({
                 <td>
                   Suma de {validas.length} factura{validas.length === 1 ? '' : 's'}
                 </td>
-                <td className="ar-code">{money(totalCargado)}</td>
+                <td className="cr-code">{money(totalCargado)}</td>
               </tr>
               <tr data-diff={Math.abs(diferencia) >= 0.01 ? 'true' : undefined}>
                 <td>Diferencia</td>
-                <td className="ar-code">
+                <td className="cr-code">
                   {diferencia > 0 ? '+' : ''}
                   {money(diferencia)}
                   {Math.abs(diferencia) < 0.01
@@ -522,7 +554,7 @@ export default function CargarXml({
               {monedaDistinta && (
                 <tr data-diff="true">
                   <td>Moneda</td>
-                  <td className="ar-code">
+                  <td className="cr-code">
                     Algun CFDI no viene en la moneda de la orden ({moneda})
                   </td>
                 </tr>
@@ -530,10 +562,10 @@ export default function CargarXml({
             </tbody>
           </table>
 
-          <div className="ar-btn-row">
+          <div className="cr-btn-row">
             <button
               type="button"
-              className="ar-btn"
+              className="cr-btn"
               onClick={() => void guardarTodas()}
               disabled={trabajando || porGuardar.length === 0 || !entradaElegida}
               title={
@@ -551,7 +583,7 @@ export default function CargarXml({
 
             <button
               type="button"
-              className="ar-btn"
+              className="cr-btn"
               data-variant="secondary"
               onClick={() => void enviarTodas()}
               disabled={trabajando || porEnviar.length === 0}
@@ -564,7 +596,7 @@ export default function CargarXml({
               Enviar a revision
             </button>
 
-            <span className="ar-small ar-muted">
+            <span className="cr-small cr-muted">
               {enviadas.length > 0
                 ? `${enviadas.length} enviada${enviadas.length === 1 ? '' : 's'} a KPS.`
                 : porEnviar.length > 0
@@ -574,8 +606,8 @@ export default function CargarXml({
           </div>
 
           {enviadas.length > 0 && (
-            <div className="ar-info" data-tone="ok">
-              <span className="ar-info__label">En manos de KPS</span>
+            <div className="cr-info" data-tone="ok">
+              <span className="cr-info__label">En manos de KPS</span>
               <p>
                 {enviadas.map((f) => f.folio).join(', ')} — KPS las revisara y te dira si las aprueba
                 o si hay algo que corregir. Puedes seguirlas en <a href="/facturas">Facturas</a>.
@@ -601,13 +633,13 @@ export default function CargarXml({
         .cf-drop {
           display: flex;
           flex-direction: column;
-          gap: var(--ar-s2);
+          gap: var(--cr-s2);
           cursor: pointer;
         }
-        .cf-drop:hover { border-color: var(--ar-ink-3); }
-        .cf-drop__titulo { font-size: 13.5px; font-weight: 600; color: var(--ar-ink); }
+        .cf-drop:hover { border-color: var(--cr-ink-3); }
+        .cf-drop__titulo { font-size: 13.5px; font-weight: 600; color: var(--cr-ink); }
         .cf-file { align-items: flex-start; }
-        .cf-file[data-mal='si'] { border-color: var(--ar-danger); }
+        .cf-file[data-mal='si'] { border-color: var(--cr-danger); }
         .cf-file__icono {
           flex: none;
           display: flex;
@@ -615,12 +647,12 @@ export default function CargarXml({
           justify-content: center;
           width: 34px;
           height: 34px;
-          border-radius: var(--ar-r-control);
-          background: var(--ar-surface-2);
-          font-family: var(--ar-mono);
+          border-radius: var(--cr-r-xs);
+          background: var(--cr-surface-2);
+          font-family: var(--cr-mono);
           font-size: 9.5px;
           letter-spacing: 0.06em;
-          color: var(--ar-ink-3);
+          color: var(--cr-ink-3);
         }
         .cf-file__cuerpo {
           display: flex;
@@ -633,7 +665,7 @@ export default function CargarXml({
           flex: none;
           display: flex;
           align-items: center;
-          gap: var(--ar-s2);
+          gap: var(--cr-s2);
         }
       `}</style>
     </section>

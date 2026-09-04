@@ -1,5 +1,5 @@
 import type { LineaEntrada } from '../matching/recepciones'
-import { moneyOrZero } from '../money'
+import { Decimal, moneyOrZero } from '../money'
 import { getSapClient } from './index'
 import { B1_OBJECT_TYPE } from './types'
 
@@ -82,6 +82,9 @@ export async function leerEntradasDeOrdenes(input: {
       // Una entrada cancelada no metio nada al almacen. Contarla inventaria
       // mercancia que nunca existio.
       if (nota.Cancelled === 'tYES') continue
+      // Una entrada cerrada ya no admite factura. Se resuelve una vez por
+      // documento, no por linea: es una propiedad del documento.
+      const notaCerrada = nota.DocumentStatus !== 'bost_Open'
       for (const l of nota.DocumentLines ?? []) {
         if (l.BaseType !== B1_OBJECT_TYPE.PurchaseOrder) continue
         if (l.BaseEntry === null || l.BaseEntry === undefined) continue
@@ -99,6 +102,26 @@ export async function leerEntradasDeOrdenes(input: {
             itemCode: l.ItemCode ?? null,
             cantidad: moneyOrZero(l.Quantity),
             almacen: l.WarehouseCode ?? null,
+            importe: moneyOrZero(l.LineTotal),
+            impuesto: moneyOrZero(l.TaxTotal),
+            // Lo que queda por FACTURAR de esta linea.
+            //
+            // MANDA EL ESTATUS DEL DOCUMENTO, NO `RemainingOpenQuantity`. En una
+            // entrada ese campo miente igual que en la orden: la entrada 1 de la
+            // instancia esta `bost_Close` y aun asi devuelve 5,000 abiertas de
+            // 5,000. Una entrada cerrada ya se facturo entera —o alguien la
+            // cerro— y en los dos casos B1 no admite otra factura contra ella.
+            // Es el mismo criterio que usa `entradas-facturables.ts`, que es
+            // quien decide contra que se puede facturar.
+            //
+            // Abierta y sin el campo se toma como pendiente entera: es el limite
+            // mas permisivo, y esconder una entrada que el proveedor todavia
+            // tiene que cobrar es peor que ofrecerla de mas.
+            porFacturar: notaCerrada
+              ? new Decimal(0)
+              : l.RemainingOpenQuantity === null || l.RemainingOpenQuantity === undefined
+                ? moneyOrZero(l.Quantity)
+                : moneyOrZero(l.RemainingOpenQuantity),
           },
         ])
       }

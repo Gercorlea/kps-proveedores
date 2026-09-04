@@ -104,8 +104,8 @@ export default async function Page({ searchParams }: Props) {
   const session = await getSession()
   if (!session) {
     return (
-      <div className="ar-info" data-tone="danger">
-        <span className="ar-info__label">Sin sesión</span>
+      <div className="cr-info" data-tone="danger">
+        <span className="cr-info__label">Sin sesión</span>
         <p>Vuelve a entrar para ver las órdenes por recibir.</p>
       </div>
     )
@@ -114,11 +114,11 @@ export default async function Page({ searchParams }: Props) {
   if (!puedeCapturarEntradas(session)) {
     return (
       <>
-        <div className="ar-page-head">
+        <div className="cr-page-head">
           <h1>Entradas de mercancía</h1>
         </div>
-        <div className="ar-empty">
-          <div className="ar-empty__title">Esta sección es de KPS.</div>
+        <div className="cr-empty">
+          <div className="cr-empty__title">Esta sección es de KPS.</div>
           <p>
             Las entradas de mercancía las registra almacén cuando llega el material, no el
             proveedor. Si esperas el estatus de una factura, ve a{' '}
@@ -190,10 +190,10 @@ export default async function Page({ searchParams }: Props) {
 
   return (
     <>
-      <div className="ar-page-head">
+      <div className="cr-page-head">
         <div>
           <h1>Entradas de mercancía</h1>
-          <p className="ar-lead" style={{ marginBottom: 0 }}>
+          <p className="cr-lead cr-flush">
             {!resultado.ok
               ? 'No se pudieron leer las órdenes'
               : termino !== ''
@@ -201,15 +201,13 @@ export default async function Page({ searchParams }: Props) {
                 : `${todas.length} ${todas.length === 1 ? 'orden abierta' : 'órdenes abiertas'}`}
           </p>
         </div>
-        <div className="ar-page-head__meta">
-          <span className="ar-meta">Business One</span>
-          <br />
-          <span className="ar-meta">Todos los proveedores</span>
+        <div className="cr-page-head__meta">
+          <span className="cr-meta">Business One</span>
         </div>
       </div>
 
-      <div className="ar-info">
-        <span className="ar-info__label">Para qué sirve esto</span>
+      <div className="cr-info">
+        <span className="cr-info__label">Para qué sirve esto</span>
         <p>
           Registrar que llegó la mercancía de una orden. La entrada se crea en Business One, que
           descuenta lo recibido; a partir de ahí el proveedor puede facturar contra lo que llegó de
@@ -218,36 +216,36 @@ export default async function Page({ searchParams }: Props) {
       </div>
 
       {!resultado.ok && (
-        <div className="ar-info" data-tone="danger">
-          <span className="ar-info__label">No hay conexión con Business One</span>
+        <div className="cr-info" data-tone="danger">
+          <span className="cr-info__label">No hay conexión con Business One</span>
           <p>{resultado.error}</p>
-          <p className="ar-small">
-            Comprueba la conexión con <span className="ar-mono">pnpm sap:check</span>.
+          <p className="cr-small">
+            Comprueba la conexión con <span className="cr-mono">pnpm sap:check</span>.
           </p>
         </div>
       )}
 
       {resultado.ok && (
         <>
-          <section className="ar-section">
-            <form method="get" className="ar-field" style={{ maxWidth: 560, marginBottom: 0 }}>
-              <label className="ar-field__label" htmlFor="q">
+          <section className="cr-section">
+            <form method="get" className="cr-field cr-filtros__buscar">
+              <label className="cr-field__label" htmlFor="q">
                 Número de orden o proveedor
               </label>
-              <div style={{ display: 'flex', gap: 'var(--ar-s2)' }}>
+              <div className="cr-btn-row">
                 <input
                   id="q"
                   name="q"
-                  className="ar-input"
+                  className="cr-input"
                   defaultValue={termino}
                   placeholder="Escribe un número de orden o un proveedor"
                   autoComplete="off"
                 />
-                <button type="submit" className="ar-btn">
+                <button type="submit" className="cr-btn">
                   Buscar
                 </button>
                 {termino !== '' && (
-                  <Link href="/entradas" className="ar-btn" data-variant="secondary">
+                  <Link href="/entradas" className="cr-btn" data-variant="secondary">
                     Limpiar
                   </Link>
                 )}
@@ -256,12 +254,11 @@ export default async function Page({ searchParams }: Props) {
               {/* El filtro viaja en la URL y no en un estado del cliente para que
                   la pantalla siga siendo un Server Component: no hace falta
                   JavaScript, y el enlace se puede compartir tal cual. */}
-              <div style={{ display: 'flex', gap: 'var(--ar-s2)', marginTop: 'var(--ar-s2)' }}>
+              <div className="cr-segment cr-mt-2" role="group" aria-label="Vista">
                 <Link
                   href={termino ? `/entradas?q=${encodeURIComponent(termino)}` : '/entradas'}
-                  className="ar-btn"
-                  data-variant={soloSimples ? undefined : 'secondary'}
-                  aria-current={soloSimples ? 'true' : undefined}
+                  className="cr-segment__item"
+                  {...(soloSimples ? { 'aria-current': 'page' as const } : {})}
                 >
                   Sin lotes
                 </Link>
@@ -271,16 +268,15 @@ export default async function Page({ searchParams }: Props) {
                       ? `/entradas?q=${encodeURIComponent(termino)}&capturables=0`
                       : '/entradas?capturables=0'
                   }
-                  className="ar-btn"
-                  data-variant={soloSimples ? 'secondary' : undefined}
-                  aria-current={soloSimples ? undefined : 'true'}
+                  className="cr-segment__item"
+                  {...(soloSimples ? {} : { 'aria-current': 'page' as const })}
                 >
                   Todas
                 </Link>
               </div>
 
               {soloSimples && ocultas > 0 && (
-                <p className="ar-small ar-muted" style={{ marginTop: 'var(--ar-s2)' }}>
+                <p className="cr-small cr-muted cr-mt-2">
                   Se ocultan {ocultas}{' '}
                   {ocultas === 1 ? 'orden que pide' : 'órdenes que piden'} lote, número de serie o
                   llevan artículos no inventariables. Las de lote sí se pueden capturar —hay que
@@ -288,18 +284,18 @@ export default async function Page({ searchParams }: Props) {
                   para verlas.
                 </p>
               )}
-              <div className="ar-field__help">
+              <div className="cr-field__help">
                 Busca entre las órdenes abiertas. No distingue mayúsculas ni acentos.
               </div>
             </form>
           </section>
 
-          <section className="ar-section">
-            <span className="ar-eyebrow">Órdenes que pueden recibir mercancía</span>
+          <section className="cr-section">
+            <span className="cr-label">Órdenes que pueden recibir mercancía</span>
 
             {visibles.length === 0 ? (
-              <div className="ar-empty">
-                <div className="ar-empty__title">
+              <div className="cr-empty">
+                <div className="cr-empty__title">
                   {termino !== ''
                     ? `Ninguna orden abierta coincide con "${termino}".`
                     : 'No hay órdenes abiertas en Business One.'}
@@ -314,14 +310,14 @@ export default async function Page({ searchParams }: Props) {
               </div>
             ) : (
               <>
-                <table className="ar-table ar-table--stack">
+                <table className="cr-table cr-table--stack">
                   <thead>
                     <tr>
                       <th>Orden</th>
                       <th>Proveedor</th>
                       <th>Emitida</th>
-                      <th className="ar-num">Total</th>
-                      <th className="ar-num">Entregas</th>
+                      <th className="cr-num">Total</th>
+                      <th className="cr-num">Entregas</th>
                       <th>Acción</th>
                     </tr>
                   </thead>
@@ -330,31 +326,31 @@ export default async function Page({ searchParams }: Props) {
                       const recibidas = entregas.get(oc.DocEntry) ?? 0
                       return (
                         <tr key={oc.DocEntry}>
-                          <td className="ar-code" data-label="Orden">
+                          <td className="cr-code" data-label="Orden">
                             <Link href={`/ordenes/${oc.DocEntry}`}>OC {oc.DocNum}</Link>
                           </td>
                           <td data-label="Proveedor">
-                            <span className="ar-mono">{oc.CardCode}</span>
+                            <span className="cr-mono">{oc.CardCode}</span>
                             {oc.CardName ? ` · ${oc.CardName}` : ''}
                           </td>
                           <td data-label="Emitida">{fecha(oc.DocDate)}</td>
-                          <td className="ar-num" data-label="Total">
+                          <td className="cr-num" data-label="Total">
                             {money(oc.DocTotal)} {oc.DocCurrency ?? ''}
                           </td>
-                          <td className="ar-num" data-label="Entregas">
+                          <td className="cr-num" data-label="Entregas">
                             {recibidas > 0 ? (
-                              <span className="ar-status" data-tone="ok">
+                              <span className="cr-status" data-tone="ok">
                                 {recibidas}
                               </span>
                             ) : (
-                              <span className="ar-muted">sin recibir</span>
+                              <span className="cr-muted">sin recibir</span>
                             )}
                           </td>
                           <td data-label="Acción">
                             <Link
                               href={`/entradas/nueva?oc=${oc.DocEntry}`}
-                              className="ar-btn"
-                              style={{ borderBottom: 0 }}
+                              className="cr-btn"
+                             
                             >
                               Registrar entrada
                             </Link>
@@ -365,7 +361,7 @@ export default async function Page({ searchParams }: Props) {
                   </tbody>
                 </table>
 
-                <div className="ar-pager">
+                <div className="cr-pager">
                   <span>
                     {visibles.length} de {filtradas.length}
                   </span>
