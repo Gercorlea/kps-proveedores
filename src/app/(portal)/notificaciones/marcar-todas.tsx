@@ -1,5 +1,7 @@
 'use client'
 
+import { mostrarToast } from '@/app/(portal)/toast'
+
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -17,13 +19,16 @@ export default function MarcarTodas() {
   async function marcar() {
     setEnviando(true)
     try {
-      await fetch('/api/v1/notificaciones', {
+      const respuesta = await fetch('/api/v1/notificaciones', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ todos: true }),
       })
+      if (!respuesta.ok) throw new Error('No se pudieron actualizar los avisos')
+      mostrarToast('Avisos marcados como leídos', 'success')
       router.refresh()
     } catch {
+      mostrarToast('No se pudieron actualizar los avisos', 'error')
       // Sin red no hay nada que hacer aqui: el aviso sigue sin leer, que es el
       // estado seguro. Se devuelve el boton para poder reintentar.
     } finally {

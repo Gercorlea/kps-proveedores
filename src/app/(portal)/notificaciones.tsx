@@ -1,5 +1,7 @@
 'use client'
 
+import { mostrarToast } from '@/app/(portal)/toast'
+
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -108,12 +110,15 @@ export default function Notificaciones({
       setNoLeidos((n) => Math.max(0, n - 1))
     }
     try {
-      await fetch('/api/v1/notificaciones', {
+      const respuesta = await fetch('/api/v1/notificaciones', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cuerpo),
       })
+      if (!respuesta.ok) throw new Error('No se pudieron actualizar los avisos')
+      if (cuerpo.todos) mostrarToast('Avisos marcados como leidos', 'success')
     } catch {
+      mostrarToast('No se pudieron actualizar los avisos', 'error')
       void cargar()
     }
   }
