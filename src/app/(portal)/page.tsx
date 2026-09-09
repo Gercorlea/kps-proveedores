@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getSession } from '@/lib/auth/server'
 import { esInterno } from '@/lib/auth/session'
 import { ETIQUETA_PROVEEDOR, SupplierType, TONO_ESTATUS } from '@/lib/domain/enums'
@@ -103,7 +104,7 @@ export default async function Page() {
 
   return (
     <>
-      <div className="cr-page-head">
+      <div className="cr-page-head cr-page-head--listado cr-inicio__cabecera">
         <div>
           <h1>Inicio</h1>
           <p className="cr-lead cr-flush">
@@ -139,7 +140,7 @@ export default async function Page() {
       )}
 
       {resumen && (
-        <section className="cr-section">
+        <section className="cr-inicio__indicadores" aria-label="Resumen de facturas">
           <div className="cr-kpi-grid">
             {kpis(resumen, interno).map((kpi) => (
               <div className="cr-kpi" key={kpi.label}>
@@ -169,8 +170,8 @@ export default async function Page() {
         todos los proveedores, y a el no le toca ninguno.
       */}
       {!interno && resumen && (resumen.requierenAccion > 0 || resumen.recibosPendientes > 0) && (
-        <section className="cr-section">
-          <span className="cr-label">Requiere tu accion</span>
+        <section className="cr-panel cr-inicio__pendientes">
+          <div className="cr-panel__head"><h2 className="cr-panel__title">Requiere tu atención</h2></div>
           <div className="cr-stack">
             {resumen.requierenAccion > 0 && (
               <div className="cr-info" data-tone="danger">
@@ -181,7 +182,7 @@ export default async function Page() {
                 </span>
                 <p>El motivo de cada una esta en tu lista de facturas.</p>
                 <div className="cr-btn-row cr-mt-3">
-                  <a href="/facturas" className="cr-btn">
+                  <a href="/facturas" className="cr-btn cr-btn--primary cr-btn--sm">
                     Ver el motivo
                   </a>
                 </div>
@@ -207,8 +208,8 @@ export default async function Page() {
         </section>
       )}
 
-      <section className="cr-section">
-        <span className="cr-label">Movimientos recientes</span>
+      {!error && <section className="cr-panel cr-listado cr-inicio__movimientos">
+        <div className="cr-panel__head"><div><h2 className="cr-panel__title">Movimientos recientes</h2><p className="cr-inicio__sub">Últimas facturas enviadas</p></div><Link href="/facturas" className="cr-btn cr-btn--secondary cr-btn--sm">Ver todas</Link></div>
         {recientes.length === 0 ? (
           <div className="cr-empty">
             <div className="cr-empty__title">
@@ -227,7 +228,7 @@ export default async function Page() {
           </div>
         ) : (
           <>
-            <table className="cr-table cr-table--stack">
+            <table className="cr-table cr-table--stack cr-listado__tabla">
               <thead>
                 <tr>
                   <th>Folio</th>
@@ -248,7 +249,7 @@ export default async function Page() {
                       {m.total}
                     </td>
                     <td data-label="Estatus">
-                      <span className="cr-status" data-tone={TONO_ESTATUS[m.status] ?? undefined}>
+                      <span className="cr-badge" data-tone={TONO_ESTATUS[m.status] ?? undefined}>
                         {ETIQUETA_PROVEEDOR[m.status]}
                       </span>
                     </td>
@@ -259,15 +260,14 @@ export default async function Page() {
                 ))}
               </tbody>
             </table>
-            <div className="cr-pager">
+            <div className="cr-pager cr-pager--pie">
               <span>
-                {recientes.length} de {movimientos.length} documentos
+                Mostrando 1 - {recientes.length} de {movimientos.length} documentos
               </span>
-              <a href="/facturas">Ver todas</a>
             </div>
           </>
         )}
-      </section>
+      </section>}
     </>
   )
 }
