@@ -2192,30 +2192,50 @@ a.cr-chip-ico:hover { background: var(--cr-ink); color: var(--cr-on-accent); }
   text-align: left;
 }
 
-/* Misma composición que la bandeja de Peticiones del dashboard KPS. */
-.cr-page-head--facturas { border-bottom: 0; padding-bottom: 0; margin-bottom: 24px; align-items: center; }
-.cr-page-head--facturas p { margin-top: 4px; }
-.cr-facturas .cr-panel__head { border-bottom-color: var(--cr-line-soft); }
-.cr-facturas .cr-panel__controles { flex-wrap: wrap; gap: 8px; }
-.cr-facturas .cr-filtros__buscar { width: 208px; max-width: 100%; }
-.cr-facturas .cr-search { height: 30px; }
-.cr-facturas .cr-segment { height: 38px; }
-.cr-facturas .cr-segment__item { padding: 8px 14px; font-size: 13px; }
-.cr-facturas .cr-search__accion[type='submit'] { order: -1; border: 0; }
-.cr-facturas .cr-search__input { padding-left: 0; }
-.cr-facturas .cr-pager--pie { background: var(--cr-bg); color: var(--cr-ink-3); padding: 14px 16px; }
-.cr-tabla-adaptable > .cr-table { border: 0 !important; border-radius: 0; }
-.cr-facturas__tabla { table-layout: fixed; }
-.cr-facturas__tabla thead th { padding: 7px 10px; font-size: 9px; letter-spacing: .1em; border-bottom-color: var(--cr-line-soft); }
-.cr-facturas__tabla tbody td { height: 44px; padding: 10px; font-size: 13px; color: var(--cr-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cr-facturas__tabla th:first-child { width: 16%; }
-.cr-facturas__tabla th:last-child { width: 14%; }
-@media (min-width: 901px) and (max-width: 1200px) {
-  .cr-facturas__tabla thead th, .cr-facturas__tabla tbody td { padding-left: 6px; padding-right: 6px; font-size: 10px; }
+/* Composición compartida por los listados de Facturas y Entradas. */
+.cr-listado__aviso { margin: 0; max-width: none; padding: 8px 18px; border-bottom: 1px solid var(--cr-line-soft); font-size: 12px; color: var(--cr-ink-2); }
+.cr-listado__proveedor { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.cr-listado__nombre { min-width: 72px; overflow: hidden; text-overflow: ellipsis; }
+.cr-listado__codigo { flex: none; font: 400 10px var(--cr-mono); color: var(--cr-ink-3); }
+.cr-entradas__orden { width: 110px; }
+.cr-entradas__fecha { width: 120px; }
+.cr-entradas__total { width: 170px; }
+.cr-entradas__entregas { width: 110px; }
+.cr-entradas__accion { width: 160px; }
+@media (min-width: 601px) and (max-width: 1200px) {
+  .cr-entradas__orden { width: 80px; }
+  .cr-entradas__fecha { width: 100px; }
+  .cr-entradas__total { width: 130px; }
+  .cr-entradas__entregas { width: 100px; }
+  .cr-entradas__accion { width: 140px; }
 }
 @media (max-width: 600px) {
-  .cr-facturas .cr-filtros__buscar { width: 100%; }
-  .cr-facturas__tabla tbody td { height: 32px; }
+  .cr-entradas__tabla colgroup { display: none; }
+}
+:is(.cr-page-head--facturas, .cr-page-head--listado) { border-bottom: 0; padding-bottom: 0; margin-bottom: 24px; align-items: center; }
+:is(.cr-page-head--facturas, .cr-page-head--listado) p { margin-top: 4px; }
+:is(.cr-facturas, .cr-listado) .cr-panel__head { border-bottom-color: var(--cr-line-soft); }
+:is(.cr-facturas, .cr-listado) .cr-panel__controles { flex-wrap: wrap; gap: 8px; }
+:is(.cr-facturas, .cr-listado) .cr-filtros__buscar { width: 208px; max-width: 100%; }
+:is(.cr-facturas, .cr-listado) .cr-search { height: 30px; }
+:is(.cr-facturas, .cr-listado) .cr-segment { height: 32px; }
+:is(.cr-facturas, .cr-listado) .cr-segment__item { padding: 6px 12px; font-size: 12px; }
+:is(.cr-facturas, .cr-listado) .cr-search__accion[type='submit'] { order: -1; border: 0; }
+:is(.cr-facturas, .cr-listado) .cr-search__input { padding-left: 0; }
+:is(.cr-facturas, .cr-listado) .cr-pager--pie { background: var(--cr-bg); color: var(--cr-ink-3); padding: 14px 16px; }
+.cr-tabla-adaptable > .cr-table { border: 0 !important; border-radius: 0; }
+:is(.cr-facturas__tabla, .cr-listado__tabla) { table-layout: fixed; }
+:is(.cr-facturas__tabla, .cr-listado__tabla) thead th { padding: 7px 10px; font-size: 9px; letter-spacing: .1em; border-bottom-color: var(--cr-line-soft); }
+:is(.cr-facturas__tabla, .cr-listado__tabla) tbody td { height: 44px; padding: 10px; font-size: 13px; color: var(--cr-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cr-facturas__tabla th:first-child { width: 16%; }
+.cr-facturas__tabla th:last-child { width: 14%; }
+.cr-entradas__tabla tbody td { padding-top: 7px; padding-bottom: 7px; }
+@media (min-width: 901px) and (max-width: 1200px) {
+  :is(.cr-facturas__tabla, .cr-listado__tabla) thead th, :is(.cr-facturas__tabla, .cr-listado__tabla) tbody td { padding-left: 6px; padding-right: 6px; font-size: 10px; }
+}
+@media (max-width: 600px) {
+  :is(.cr-facturas, .cr-listado) .cr-filtros__buscar { width: 100%; }
+  :is(.cr-facturas__tabla, .cr-listado__tabla) tbody td { height: 32px; }
 }
 
 /* --------------------------------------------------------------------------
