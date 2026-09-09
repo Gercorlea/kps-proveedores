@@ -172,4 +172,46 @@ function Aspa(p: Props) {
   )
 }
 
-export { LogOut, Lupa, Aspa }
+/**
+ * Los tres archivos de una factura: XML, PDF y evidencias.
+ *
+ * Van en los chips de 16px de la columna "Archivos" (§11 de la spec). Ahi el
+ * icono NO es adorno: es el dato —el archivo esta o falta— dicho en el ancho de
+ * un cuadrito, donde las etiquetas de texto —"sin XML · sin PDF · 2
+ * evidencias"— se comian media tabla y empujaban la fila a dos lineas.
+ *
+ * Quien los envuelve pone el `title` con el texto entero, que es lo que
+ * recupera lo que el icono comprime.
+ */
+function FileCode(p: Props) {
+  return (
+    <Svg {...p}>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+      <path d="m10 13-2 2 2 2" />
+      <path d="m14 17 2-2-2-2" />
+    </Svg>
+  )
+}
+
+function FileText(p: Props) {
+  return (
+    <Svg {...p}>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+      <path d="M10 9H8" />
+      <path d="M16 13H8" />
+      <path d="M16 17H8" />
+    </Svg>
+  )
+}
+
+function Paperclip(p: Props) {
+  return (
+    <Svg {...p}>
+      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </Svg>
+  )
+}
+
+export { LogOut, Lupa, Aspa, FileCode, FileText, Paperclip }

@@ -13,7 +13,7 @@ import { getSapClient, SapError, type B1DocumentLine, type B1PurchaseOrder } fro
 import { leerEntradasDeOrdenes } from '@/lib/sap/entradas'
 import { describirPlazo, leerPlazos, type Plazo } from '@/lib/sap/plazos'
 import { paginar, Paginador } from '../paginacion'
-import { Buscador } from './buscador'
+import { Buscador } from '../buscador'
 
 /**
  * P04 · Estado de cuenta del proveedor.
@@ -940,9 +940,14 @@ export default async function Page({ searchParams }: Props) {
                   de la pantalla que lo es— porque el resto sigue siendo
                   servidor: empuja `?q=` y esta pagina se vuelve a pintar. */}
               <Buscador
+                base="/ordenes"
                 termino={termino}
-                tab={pestana !== 'facturar' ? pestana : undefined}
-                chip={chip !== 'todas' ? chip : undefined}
+                filtros={{
+                  tab: pestana !== 'facturar' ? pestana : undefined,
+                  f: chip !== 'todas' ? chip : undefined,
+                }}
+                placeholder="Orden, entrada o folio"
+                etiqueta="Buscar por numero de orden, de entrada o folio de factura"
               />
             </div>
           </section>
