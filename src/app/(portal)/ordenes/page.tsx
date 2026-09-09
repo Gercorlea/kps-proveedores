@@ -1,3 +1,6 @@
+import { Suspense } from 'react'
+import ModalOrden from './modal-orden'
+import DetalleOrden from './[docEntry]/detalle-orden'
 import Link from 'next/link'
 import { getSession } from '@/lib/auth/server'
 import { esInterno } from '@/lib/auth/session'
@@ -68,7 +71,7 @@ import { Buscador } from '../buscador'
 export const dynamic = 'force-dynamic'
 
 interface Props {
-  searchParams: Promise<{ q?: string; p?: string; tab?: string; f?: string; sel?: string; dq?: string; dp?: string }>
+  searchParams: Promise<{ q?: string; p?: string; tab?: string; f?: string; sel?: string; dq?: string; dp?: string; ordenCompleta?: string }>
 }
 
 /**
@@ -700,7 +703,7 @@ function enlace(
 }
 
 export default async function Page({ searchParams }: Props) {
-  const { q, p, tab, f, sel, dq, dp } = await searchParams
+  const { q, p, tab, f, sel, dq, dp, ordenCompleta } = await searchParams
   const termino = q?.trim() ?? ''
   const pestana: Pestana = PESTANAS.find((t) => t.id === tab)?.id ?? 'facturar'
   const chip: Chip = CHIPS[pestana].find((c) => c.id === f)?.id ?? 'todas'
@@ -946,6 +949,7 @@ export default async function Page({ searchParams }: Props) {
             filtros={{ ...filtros, p, sel }} termino={dq?.trim() ?? ''} pagina={dp} />}
         </div>
       )}
+      {ordenCompleta && <ModalOrden><Suspense fallback={<p role="status">Cargando informacion de la orden...</p>}><DetalleOrden params={Promise.resolve({ docEntry: ordenCompleta })} consulta /></Suspense></ModalOrden>}
     </>
   )
 }
@@ -1009,7 +1013,7 @@ function FichaOrden({ fila, renglones, renglonesError, plazos, cerrar, filtros, 
             </tr>
           })} />}
       <div className="cr-ordenes__pie">
-        <Link href={`/ordenes/${fila.oc.DocEntry}`} className={`cr-btn cr-btn--sm ${hayQueFacturar ? 'cr-btn--primary' : 'cr-btn--secondary'}`}>
+        <Link scroll={false} href={hayQueFacturar ? `/ordenes/${fila.oc.DocEntry}` : `/ordenes?${new URLSearchParams(Object.entries({ ...filtros, dq: termino, dp: pagina, ordenCompleta: String(fila.oc.DocEntry) }).filter((entry): entry is [string, string] => entry[1] !== undefined))}`} className={`cr-btn cr-btn--sm ${hayQueFacturar ? 'cr-btn--primary' : 'cr-btn--secondary'}`}>
           {hayQueFacturar ? 'Cargar factura' : 'Ver la orden completa'}
         </Link>
       </div>
