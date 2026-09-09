@@ -12,8 +12,8 @@ import type { LineaEntrada } from '@/lib/matching/recepciones'
 import { getSapClient, SapError, type B1DocumentLine, type B1PurchaseOrder } from '@/lib/sap'
 import { leerEntradasDeOrdenes } from '@/lib/sap/entradas'
 import { describirPlazo, leerPlazos, type Plazo } from '@/lib/sap/plazos'
-import { paginar, Paginador } from '../paginacion'
-import { Buscador } from './buscador'
+import { TablaAdaptable } from '../tabla-adaptable'
+import { Buscador } from '../buscador'
 
 /**
  * P04 · Estado de cuenta del proveedor.
@@ -68,7 +68,7 @@ import { Buscador } from './buscador'
 export const dynamic = 'force-dynamic'
 
 interface Props {
-  searchParams: Promise<{ q?: string; p?: string; tab?: string; f?: string; sel?: string }>
+  searchParams: Promise<{ q?: string; p?: string; tab?: string; f?: string; sel?: string; dq?: string; dp?: string }>
 }
 
 /**
@@ -116,7 +116,7 @@ const CHIPS: Record<Pestana, ReadonlyArray<{ id: Chip; label: string }>> = {
   facturar: [
     { id: 'todas', label: 'Todas' },
     { id: 'por_subir', label: 'Por cargar factura' },
-    { id: 'en_revision', label: 'En revision' },
+    { id: 'en_revision', label: 'En revisión' },
   ],
   aprobadas: [
     { id: 'todas', label: 'Todas' },
@@ -700,7 +700,7 @@ function enlace(
 }
 
 export default async function Page({ searchParams }: Props) {
-  const { q, p, tab, f, sel } = await searchParams
+  const { q, p, tab, f, sel, dq, dp } = await searchParams
   const termino = q?.trim() ?? ''
   const pestana: Pestana = PESTANAS.find((t) => t.id === tab)?.id ?? 'facturar'
   const chip: Chip = CHIPS[pestana].find((c) => c.id === f)?.id ?? 'todas'
@@ -823,589 +823,196 @@ export default async function Page({ searchParams }: Props) {
     .filter((fila) => !termino || coincideAprobada(fila))
     .filter((fila) => chip === 'todas' || (chip === 'pagadas' ? fila.pagada : !fila.pagada))
 
-  // Cuando la busqueda no da nada AQUI, se mira si da en el otro sitio antes de
-  // decir nada. Mandar a alguien a "prueba en la otra pestaña" cuando ahi
-  // tampoco esta es hacerle perder el viaje; y si la orden estaba delante y la
-  // escondio el chip, lo que hay que decir es eso, no que cambie de pestaña.
-  const coincidencias = (p: Pestana) =>
-    p === 'aprobadas'
-      ? aprobadas.filter(coincideAprobada).length
-      : (p === 'historico' ? historicas : porFacturar).filter(coincideOC).length
-  // Con tres pestañas ya no hay "la otra": se apunta a la primera distinta que
-  // de verdad tenga resultados, que es la unica que vale la pena ofrecer.
-  const otra: Pestana =
-    PESTANAS.map((t) => t.id).find((id) => id !== pestana && coincidencias(id) > 0) ??
-    (pestana === 'facturar' ? 'aprobadas' : 'facturar')
-  const enLaOtra = termino ? coincidencias(otra) : 0
-  const enElResto = termino && chip !== 'todas' ? coincidencias(pestana) : 0
-
-  // Las dos pestanas se paginan igual, pero cada una con sus filas. `POR_PAGINA`
-  // marca ademas el tope de ordenes cuyos renglones se le piden a B1 de golpe:
-  // solo se leen los de la pagina visible.
-  const pagEntradas = paginar(entradasVisibles, p)
-  const pagAprobadas = paginar(aprobadasVisibles, p)
-  const pag = pestana === 'aprobadas' ? pagAprobadas : pagEntradas
-  const entradasPagina = pagEntradas.filas
-  const aprobadasPagina = pagAprobadas.filas
-  const enPantalla = pag.filas.length
-
-  // LA ORDEN ABIERTA EN LA FICHA.
-  //
-  // Se busca dentro de la pagina visible y no en todo el listado: un `sel` que
-  // apunta a una orden filtrada fuera —cambiar de chip con la ficha abierta—
-  // debe cerrarse sola, no resucitar una fila que ya no esta en la lista.
-  // `sel` identifica una ENTRADA, no una orden: es la unidad de la lista. La
-  // ficha enseña la orden a la que pertenece, que es el contexto que hace falta
-  // para decidir sobre ella.
-  const elegida =
-    pestana !== 'aprobadas' && sel != null
-      ? (entradasPagina.find(({ entrega }) => String(entrega.docEntry) === sel) ?? null)
-      : null
-  const seleccionada = elegida?.fila ?? null
-
-  // Los renglones, SOLO de la orden abierta.
-  //
-  // La lista ya no los necesita —su ultima columna cuenta entradas, que vienen
-  // de otro sitio—, y la ficha enseña una orden cada vez. Sigue siendo UNA
-  // llamada a B1, pero con los renglones de una orden en vez de los de cinco.
+  const filtros = {
+    tab: pestana === 'facturar' ? undefined : pestana,
+    f: chip === 'todas' ? undefined : chip,
+    q: termino || undefined,
+  }
+  const numeroPagina = Math.max(1, Number.parseInt(p ?? '1', 10) || 1)
+  // La selección pertenece al resultado filtrado. Paginar o filtrar la lista la cierra.
+  const elegida = pestana !== 'aprobadas'
+    ? entradasVisibles.find(({ entrega }) => String(entrega.docEntry) === sel) ?? null
+    : null
   let renglones: ReadonlyMap<number, readonly B1DocumentLine[]> = new Map()
   let renglonesError = false
-  if (seleccionada) {
-    try {
-      renglones = await renglonesDeOrdenes([seleccionada.oc.DocEntry], cardCode)
-    } catch {
-      renglonesError = true
-    }
+  if (elegida) {
+    try { renglones = await renglonesDeOrdenes([elegida.fila.oc.DocEntry], cardCode) }
+    catch { renglonesError = true }
   }
+  const total = pestana === 'aprobadas' ? aprobadasVisibles.length : entradasVisibles.length
 
   return (
     <>
-      <div className="cr-page-head">
+      <div className="cr-page-head cr-page-head--listado">
         <div>
-          <h1>Ordenes de compra</h1>
-          {!resultado.ok && <p className="cr-lead cr-flush">No se pudo leer tu estado de cuenta</p>}
-        </div>
-      </div>
-
-      {!resultado.ok && (
-        <div className="cr-info" data-tone="danger">
-          <span className="cr-info__label">No se pudieron leer las ordenes</span>
-          {interno && <p className="cr-small cr-flush">{resultado.error}</p>}
-        </div>
-      )}
-
-      {resultado.ok && (
-        <>
-          <section className="cr-section cr-filtros">
-            {/* NIVEL 1 · LA VISTA. Pestañas con subrayado, no un segmentado.
-                Manda sobre los chips de abajo, y dos cajas del mismo tamaño una
-                junto a otra no dejaban ver cual anida en cual: el chip activo,
-                en tinta solida, pesaba mas que la pestaña activa, que solo se
-                marcaba con fondo blanco. Son <a> porque la pestaña vive en la
-                URL —se comparte y se recarga—, y por eso el activo se marca con
-                `aria-current` y no con `aria-selected`, que es de un tablist de
-                verdad. */}
-            <div className="cr-tabs" role="group" aria-label="Vista">
-              {PESTANAS.map((t) => (
-                <Link
-                  key={t.id}
-                  href={enlace(t.id, 'todas', termino, 1)}
-                  className="cr-tabs__item"
-                  {...(pestana === t.id ? { 'aria-current': 'page' as const } : {})}
-                >
-                  {t.label}
-                </Link>
-              ))}
-            </div>
-
-            {/* NIVEL 2 · afina dentro de la pestaña: chips a la izquierda,
-                buscador contra el borde derecho. */}
-            <div className="cr-filtros__fila">
-              {/* Los chips son enlaces, no botones: el filtro vive en la URL y
-                  asi se puede compartir o recargar. */}
-              <div className="cr-btn-row cr-filtros__chips">
-                {CHIPS[pestana].map((c) => (
-                  <Link
-                    key={c.id}
-                    href={enlace(pestana, c.id, termino, 1)}
-                    className="cr-pill"
-                    {...(chip === c.id ? { 'aria-current': 'page' as const } : {})}
-                  >
-                    {c.label}
-                  </Link>
+          <h1>Órdenes de compra</h1>
+          <p className="cr-small cr-flush cr-ink-3">Entradas de mercancía, facturas y seguimiento de tus órdenes</p>
+          {resultado.ok && (
+            <div className="cr-vistas-pagina">
+              <div className="cr-segment" role="group" aria-label="Vista">
+                {PESTANAS.map((t) => (
+                  <Link key={t.id} href={enlace(t.id, 'todas', termino, 1)} className="cr-segment__item"
+                    aria-current={pestana === t.id ? 'page' : undefined}>{t.label}</Link>
                 ))}
               </div>
-
-              {/* Filtra al escribir. Es un Client Component minimo —lo unico
-                  de la pantalla que lo es— porque el resto sigue siendo
-                  servidor: empuja `?q=` y esta pagina se vuelve a pintar. */}
-              <Buscador
-                termino={termino}
-                tab={pestana !== 'facturar' ? pestana : undefined}
-                chip={chip !== 'todas' ? chip : undefined}
-              />
-            </div>
-          </section>
-
-          {resultado.truncado && (
-            <div className="cr-info" data-tone="warn">
-              <span className="cr-info__label">Listado recortado</span>
-              <p>
-                Se cargaron las {MAX_ORDENES} mas recientes. Para una anterior, busca su numero.
-              </p>
             </div>
           )}
-
-          {entradasError && (
-            <div className="cr-info" data-tone="warn">
-              <span className="cr-info__label">No se pudieron leer las entradas de mercancia</span>
-              <p className="cr-flush">Falta lo entregado y lo facturable.</p>
-              {interno && <p className="cr-small cr-flush">{entradasError}</p>}
-            </div>
-          )}
-
-          {entradasTruncadas && (
-            <div className="cr-info" data-tone="warn">
-              <span className="cr-info__label">Entregas recortadas</span>
-              <p>Hay mas entregas de las que se leyeron. Lo que ves es un minimo.</p>
-            </div>
-          )}
-
-          {renglonesError && (
-            <div className="cr-info" data-tone="warn">
-              <span className="cr-info__label">No se pudo leer el detalle por articulo</span>
-              <p>Faltan los articulos. Las ordenes y sus entregas estan completas.</p>
-            </div>
-          )}
-
-          <section className="cr-section">
-            {enPantalla === 0 ? (
-              <div className="cr-empty">
-                {termino !== '' ? (
-                  <>
-                    <div className="cr-empty__title">
-                      Sin resultados para &quot;{termino}&quot;.
-                    </div>
-                    {/* Se dice DONDE esta, con el enlace hecho. El chip primero:
-                        si la orden esta en esta misma pestaña y la tapa el
-                        filtro, mandar a la otra seria mandar mal. */}
-                    <p>
-                      {enElResto > 0 ? (
-                        <>
-                          Hay {enElResto} en{' '}
-                          <Link href={enlace(pestana, 'todas', termino, 1)}>
-                            todas las de esta pestaña
-                          </Link>
-                          .
-                        </>
-                      ) : enLaOtra > 0 ? (
-                        <>
-                          Hay {enLaOtra} en{' '}
-                          <Link href={enlace(otra, 'todas', termino, 1)}>
-                            {PESTANAS.find((t) => t.id === otra)?.label}
-                          </Link>
-                          .
-                        </>
-                      ) : (
-                        <>
-                          Se busca por numero de orden, de entrada o folio de factura.{' '}
-                          <Link href={enlace(pestana, chip, '', 1)}>Quitar la busqueda</Link>.
-                        </>
-                      )}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="cr-empty__title">
-                      {pestana === 'historico'
-                        ? 'Ninguna entrada facturada en Business One.'
-                        : pestana === 'facturar'
-                          ? chip === 'por_subir'
-                            ? 'Nada pendiente de facturar.'
-                            : chip === 'en_revision'
-                              ? 'Nada en revision.'
-                              : 'Ninguna orden con saldo.'
-                          : chip === 'pagadas'
-                            ? 'Ningun pago registrado.'
-                            : 'Ninguna factura aprobada.'}
-                    </div>
-                    <p>
-                      {pestana === 'historico'
-                        ? 'Aparecen aqui las entradas cuya factura se registro directamente en Business One, sin pasar por el portal.'
-                        : pestana === 'facturar'
-                          ? 'Aparecen aqui cuando KPS registra una entrada de tu mercancia.'
-                          : 'Aparecen aqui cuando KPS autoriza una factura.'}
-                    </p>
-                  </>
+        </div>
+      </div>
+      {!resultado.ok ? (
+        <div className="cr-info" data-tone="danger">
+          <span className="cr-info__label">No se pudieron consultar las órdenes</span>
+          <p>{interno ? resultado.error : 'Vuelve a intentarlo en unos momentos.'}</p>
+        </div>
+      ) : (
+        <div className="cr-ordenes" data-detalle={elegida ? 'true' : undefined}>
+          <section className="cr-panel cr-listado" aria-label="Estado de cuenta">
+            <div className="cr-panel__head">
+              <div>
+                <h2 className="cr-panel__title">Estado de cuenta</h2>
+                <p className="cr-small cr-flush cr-ink-3">{total} {pestana === 'aprobadas' ? 'facturas' : 'entradas'}</p>
+              </div>
+              <div className="cr-panel__controles">
+                <Buscador base="/ordenes" termino={termino} filtros={{ tab: filtros.tab, f: filtros.f }}
+                  placeholder="Orden, entrada o folio" etiqueta="Buscar órdenes, entradas o facturas" />
+                {CHIPS[pestana].length > 1 && (
+                <div className="cr-segment" role="group" aria-label="Filtrar por estado">
+                  {CHIPS[pestana].map((c) => (
+                    <Link key={c.id} href={enlace(pestana, c.id, termino, 1)} className="cr-segment__item"
+                      aria-current={chip === c.id ? 'page' : undefined}>{c.label}</Link>
+                  ))}
+                </div>
                 )}
               </div>
-            ) : pestana !== 'aprobadas' ? (
-              /* MAESTRO-DETALLE. La lista resume; la ficha de la derecha
-                 detalla. Antes cada orden era un acordeon de tres niveles: al
-                 abrir la tercera, la cuarta se iba fuera de la pantalla, y para
-                 comparar dos habia que plegar una. La ficha no mueve la lista.
-
-                 La seleccion viaja en `?sel=`, no en estado del cliente: asi la
-                 pantalla sigue siendo Server Component —puede pedirle a B1 los
-                 renglones de la orden abierta— y el enlace se comparte. */
-              <div className="cr-md" data-abierta={seleccionada ? 'true' : undefined}>
-                <div className="cr-panel">
-                  <div className="cr-md__fila cr-md__cabecera">
-                    <span># Entrada</span>
-                    <span>Recibida</span>
-                    <span>Orden</span>
-                    <span className="cr-right">Importe</span>
-                    <span>Estado</span>
-                  </div>
-
-                  {entradasPagina.map(({ fila, entrega }) => {
-                    const sello = selloDe(entrega.factura, entrega.estado)
-                    const abierta = elegida?.entrega.docEntry === entrega.docEntry
-                    const moneda = fila.oc.DocCurrency ?? ''
-                    /* El recuento de la ORDEN, no de la fila. Con un renglon
-                       por entrada se pierde de vista a que conjunto pertenece:
-                       esto dice si esta es la ultima que falta o una de doce.
-                       Sale de `fila.entregas`, que trae TODAS las de la orden
-                       aunque el chip haya recortado la lista. */
-                    const totalEntradas = fila.entregas.length
-                    const facturadas = fila.entregas.filter((e) => e.estado !== 'por_subir').length
-                    return (
-                        <Link
-                          key={entrega.docEntry}
-                          className="cr-md__fila"
-                          scroll={false}
-                          href={enlace(
-                            pestana,
-                            chip,
-                            termino,
-                            pag.numero,
-                            // Volver a pulsar la fila abierta la cierra: es el
-                            // gesto que espera cualquiera que quiera recuperar
-                            // el ancho completo de la lista.
-                            abierta ? null : entrega.docEntry,
-                          )}
-                          {...(abierta ? { 'aria-current': 'page' as const } : {})}
-                        >
-                          <span className="cr-md__celda">
-                            <span className="cr-code cr-md__titulo">{entrega.docNum}</span>
-                          </span>
-                          <span className="cr-md__celda">{formatDate(entrega.fecha)}</span>
-                          <span className="cr-md__celda">
-                            <span className="cr-code">OC {fila.oc.DocNum}</span>
-                            <span className="cr-md__sub">
-                              {interno
-                                ? `${fila.oc.CardCode}${fila.oc.CardName ? ` · ${fila.oc.CardName}` : ''}`
-                                : (fila.oc.CardName ?? fila.oc.CardCode)}
-                            </span>
-                            <span className="cr-md__sub">
-                              {totalEntradas === 1 ? '1 entrada' : `${totalEntradas} entradas`} ·{' '}
-                              {facturadas === 0
-                                ? 'ninguna facturada'
-                                : facturadas === totalEntradas
-                                  ? 'todas facturadas'
-                                  : `${facturadas} facturada${facturadas === 1 ? '' : 's'}`}
-                            </span>
-                          </span>
-                          <span className="cr-md__celda" data-align="right">
-                            <strong className="cr-mono">{formatMoney(entrega.importe)}</strong>
-                            <span className="cr-md__sub">{moneda}</span>
-                          </span>
-                          <span className="cr-md__celda">
-                            <span className="cr-status" data-tone={sello.tone}>
-                              {sello.texto}
-                            </span>
-                          </span>
-                        </Link>
-                    )
-                  })}
-                </div>
-
-                <div className="cr-md__detalle">
-                  {seleccionada ? (
-                    <FichaOrden
-                      fila={seleccionada}
-                      renglones={renglones.get(seleccionada.oc.DocEntry)}
-                      renglonesError={renglonesError}
-                      plazos={plazos}
-                      cerrar={enlace(pestana, chip, termino, pag.numero, null)}
-                    />
-                  ) : (
-                    /* La columna existe aunque no haya nada elegido: si
-                       apareciera y desapareciera, la lista cambiaria de ancho a
-                       cada clic. */
-                    <div className="cr-panel">
-                      <div className="cr-md__vacio">
-                        <p className="cr-small cr-flush">
-                          {historico
-                            ? 'Elige una entrada para ver su orden. Su factura se registro en Business One, no aqui.'
-                            : 'Elige una entrada para ver su orden y cargarle la factura.'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            </div>
+            {resultado.truncado && <p className="cr-listado__aviso">Listado limitado a {MAX_ORDENES} órdenes. La búsqueda se realiza sobre los documentos consultados.</p>}
+            {entradasError && <p className="cr-listado__aviso">No se pudieron consultar las entradas. La información de facturación no está disponible.</p>}
+            {entradasTruncadas && <p className="cr-listado__aviso">La consulta de entregas está incompleta. Los importes mostrados son mínimos confirmados.</p>}
+            {total === 0 ? (
+              <div className="cr-empty cr-empty--compacto">
+                <div className="cr-empty__title">{entradasError ? 'No se pudo cargar el listado.' : termino ? `Sin resultados para "${termino}".` : 'No hay documentos en esta vista.'}</div>
+                <p>{termino ? 'Prueba con otro número de orden, entrada o folio.' : 'Los documentos aparecerán aquí cuando tengan el estado correspondiente.'}</p>
               </div>
+            ) : pestana === 'aprobadas' ? (
+              <TablaAdaptable base="/ordenes" unidad="facturas" pagina={p} filtros={filtros}
+                className="cr-table cr-table--stack cr-listado__tabla cr-ordenes__tabla"
+                cabecera={<thead><tr>
+                  <th>Factura</th><th>Entrada</th><th>Orden</th>
+                  {interno && <th>Proveedor</th>}<th>Capturada</th><th>Plazo</th><th className="cr-num">Importe</th><th>Estatus</th>
+                </tr></thead>}
+                filas={aprobadasVisibles.map((fila) => {
+                  const estatus = estatusFactura(fila.factura.status)
+                  return <tr key={`${fila.oc.DocEntry}-${fila.entrega.docEntry}`}>
+                    <td data-label="Factura" className="cr-code" title={`Emitida: ${formatFecha(fila.factura.emitida)}`}>{fila.factura.folio}</td>
+                    <td data-label="Entrada" className="cr-code" title={`Recibida: ${formatDate(fila.entrega.fecha)}`}>{fila.entrega.docNum}</td>
+                    <td data-label="Orden" className="cr-code"><Link href={`/ordenes/${fila.oc.DocEntry}`}>OC {fila.oc.DocNum}</Link></td>
+                    {interno && <td data-label="Proveedor" title={`${fila.oc.CardName ?? ''} ${fila.oc.CardCode}`}>{fila.oc.CardName ?? fila.oc.CardCode}</td>}
+                    <td data-label="Capturada" className="cr-code">{formatFecha(fila.factura.capturada)}</td>
+                    <td data-label="Plazo">{describirPlazo(plazos, fila.oc.PaymentGroupCode)}</td>
+                    <td data-label="Importe" className="cr-num">{formatMoney(fila.factura.importe ?? fila.entrega.importe)} {fila.oc.DocCurrency ?? ''}</td>
+                    <td data-label="Estatus" title={estatus.label}><span className="cr-badge" data-tone={estatus.tone ?? undefined}>{estatus.label}</span></td>
+                  </tr>
+                })} />
             ) : (
-              <div className="cr-table-scroll">
-                <table className="cr-table cr-table--stack">
-                  <thead>
-                    <tr>
-                      <th>Estatus</th>
-                      <th>Factura</th>
-                      {/* El numero de entrada es EL punto de conexion entre KPS
-                          y el proveedor: por eso va tan adelante. */}
-                      <th>Entrada</th>
-                      <th>Orden</th>
-                      {interno && <th>Proveedor</th>}
-                      <th className="cr-date">Capturada</th>
-                      <th>Plazo de pago</th>
-                      <th className="cr-num">Importe</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {aprobadasPagina.map((fila) => {
-                      const estatus = estatusFactura(fila.factura.status)
-                      return (
-                        <tr key={`${fila.oc.DocEntry}-${fila.entrega.docEntry}`}>
-                          <td data-label="Estatus">
-                            <span className="cr-status" data-tone={estatus.tone ?? undefined}>
-                              {estatus.label}
-                            </span>
-                          </td>
-                          <td className="cr-code" data-label="Factura">
-                            {fila.factura.folio}
-                            <div className="cr-small cr-muted">
-                              {formatFecha(fila.factura.emitida)}
-                            </div>
-                          </td>
-                          <td data-label="Entrada">
-                            <span className="cr-code">{fila.entrega.docNum}</span>
-                            <div className="cr-small cr-muted">
-                              {formatDate(fila.entrega.fecha)}
-                            </div>
-                          </td>
-                          <td className="cr-code" data-label="Orden">
-                            <Link href={`/ordenes/${fila.oc.DocEntry}`}>OC {fila.oc.DocNum}</Link>
-                          </td>
-                          {interno && (
-                            <td data-label="Proveedor">
-                              <span className="cr-mono">{fila.oc.CardCode}</span>
-                              {fila.oc.CardName ? ` · ${fila.oc.CardName}` : ''}
-                            </td>
-                          )}
-                          <td className="cr-date" data-label="Capturada">
-                            {formatFecha(fila.factura.capturada)}
-                          </td>
-                          <td data-label="Plazo de pago">
-                            {describirPlazo(plazos, fila.oc.PaymentGroupCode)}
-                          </td>
-                          <td className="cr-num" data-label="Importe">
-                            {formatMoney(fila.factura.importe ?? fila.entrega.importe)}{' '}
-                            {fila.oc.DocCurrency ?? ''}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <TablaAdaptable base="/ordenes" unidad="entradas" pagina={p} filtros={filtros}
+                className="cr-table cr-table--stack cr-listado__tabla cr-ordenes__tabla"
+                cabecera={<>
+                  <colgroup><col className="cr-ordenes__id" /><col className="cr-ordenes__fecha" /><col className="cr-ordenes__id" />
+                    <col /><col className="cr-ordenes__importe" /><col className="cr-ordenes__estado" /><col className="cr-ordenes__accion" /></colgroup>
+                  <thead><tr><th>Entrada</th><th>Recibida</th><th>Orden</th><th>Proveedor</th>
+                    <th className="cr-num">Importe</th><th>Estado</th><th className="cr-num">Acción</th></tr></thead>
+                </>}
+                filas={entradasVisibles.map(({ fila, entrega }) => {
+                  const sello = selloDe(entrega.factura, entrega.estado)
+                  const abierta = elegida?.entrega.docEntry === entrega.docEntry && elegida.fila.oc.DocEntry === fila.oc.DocEntry
+                  const destino = enlace(pestana, chip, termino, numeroPagina, abierta ? null : entrega.docEntry)
+                  return <tr key={`${fila.oc.DocEntry}-${entrega.docEntry}`} data-seleccionada={abierta ? 'true' : undefined}>
+                    <td data-label="Entrada" className="cr-code"><Link href={destino} scroll={false} aria-current={abierta ? 'true' : undefined}>{entrega.docNum}</Link></td>
+                    <td data-label="Recibida" className="cr-code">{formatDate(entrega.fecha)}</td>
+                    <td data-label="Orden" className="cr-code" title={`${fila.entregas.length} entradas en esta orden`}><Link href={`/ordenes/${fila.oc.DocEntry}`}>OC {fila.oc.DocNum}</Link></td>
+                    <td data-label="Proveedor" title={`${fila.oc.CardName ?? ''} ${fila.oc.CardCode}`}>
+                      <span className="cr-listado__proveedor"><span className="cr-listado__nombre">{fila.oc.CardName ?? fila.oc.CardCode}</span>
+                        {interno && <span className="cr-listado__codigo">{fila.oc.CardCode}</span>}</span>
+                    </td>
+                    <td data-label="Importe" className="cr-num">{formatMoney(entrega.importe)} {fila.oc.DocCurrency ?? ''}</td>
+                    <td data-label="Estado" title={sello.texto}><span className="cr-badge" data-tone={sello.tone}>{sello.texto}</span></td>
+                    <td data-label="Acción" className="cr-num"><Link href={destino} scroll={false} className="cr-btn cr-btn--secondary cr-btn--sm">{abierta ? 'Cerrar' : 'Ver detalle'}</Link></td>
+                  </tr>
+                })} />
             )}
-
-            <Paginador
-              pagina={pag}
-              unidad={pestana === 'aprobadas' ? 'facturas' : 'ordenes'}
-              href={(n) => enlace(pestana, chip, termino, n)}
-            />
           </section>
-        </>
+          {elegida && <FichaOrden fila={elegida.fila} renglones={renglones.get(elegida.fila.oc.DocEntry)}
+            renglonesError={renglonesError} plazos={plazos} cerrar={enlace(pestana, chip, termino, numeroPagina)}
+            filtros={{ ...filtros, p, sel }} termino={dq?.trim() ?? ''} pagina={dp} />}
+        </div>
       )}
     </>
   )
 }
 
-/**
- * Nivel 3 · las entradas de mercancia de un articulo.
- *
- * Cada renglon es una entrega concreta, con su importe y su factura. El boton
- * nombra la entrada porque es lo que el proveedor tiene que casar con su
- * remision: "cargar factura" a secas no dice de cual.
- */
-/**
- * La ficha de la orden abierta.
- *
- * En 440px no cabe la tabla de ocho columnas que tenia el acordeon, asi que el
- * detalle del articulo se lee en VERTICAL: descripcion arriba y las seis cifras
- * en pares dato/valor. Es la misma informacion, ordenada para una columna
- * estrecha en vez de para una fila ancha.
- */
-function FichaOrden({
-  fila,
-  renglones,
-  renglonesError,
-  plazos,
-  cerrar,
-}: {
+function FichaOrden({ fila, renglones, renglonesError, plazos, cerrar, filtros, termino, pagina }: {
   fila: FilaOC
   renglones: readonly B1DocumentLine[] | undefined
   renglonesError: boolean
   plazos: ReadonlyMap<number, Plazo>
   cerrar: string
+  filtros: Record<string, string | undefined>
+  termino: string
+  pagina?: string
 }) {
   const { articulos } = articulosDeOrden(fila, renglones)
   const moneda = fila.oc.DocCurrency ?? ''
-  const cobrable = fila.porSubir + fila.enRevision
-  // Si hay alguna entrada sin factura, ESA es la accion de la ficha. Antes el
-  // unico boton era "Ver la orden completa" —una navegacion, no una accion—, y
-  // para facturar habia que pulsarlo, buscar la entrada y cargar ahi: tres
-  // pasos para lo unico que el proveedor vino a hacer.
   const hayQueFacturar = fila.entregas.some((e) => e.estado === 'por_subir')
-
+  // Una fila por factura conserva el historial completo de cada entrada.
+  const documentos = fila.entregas.flatMap((entrega) =>
+    (entrega.facturas.length ? entrega.facturas : [null]).map((factura) => ({ entrega, factura })),
+  ).filter(({ entrega, factura }) => !termino || compacto([
+    entrega.docNum, factura?.folio ?? '', selloDe(factura, entrega.estado).texto,
+    formatMoney(factura?.importe ?? entrega.importe), formatDate(entrega.fecha),
+  ].join(' ')).includes(compacto(termino)))
   return (
-    <div className="cr-panel cr-md__panel">
+    <aside className="cr-panel cr-listado cr-ordenes__detalle" aria-label={`Detalle de OC ${fila.oc.DocNum}`}>
       <div className="cr-panel__head">
-        <div className="cr-md__celda">
-          <p className="cr-label cr-flush">Orden de compra</p>
-          <h2 className="cr-mono cr-md__titulo">OC {fila.oc.DocNum}</h2>
-          <p className="cr-md__sub cr-flush">
-            {fila.oc.CardName ?? fila.oc.CardCode}
-          </p>
-        </div>
-        {/* Cierra la ficha sin tener que volver a buscar la fila abierta. */}
-        <Link href={cerrar} className="cr-btn cr-btn--sm" data-variant="ghost" scroll={false}>
-          Cerrar
-        </Link>
+        <div><h2 className="cr-panel__title">OC {fila.oc.DocNum}</h2>
+          <p className="cr-small cr-flush cr-ink-3">{fila.oc.CardName ?? fila.oc.CardCode}</p></div>
+        <Link href={cerrar} scroll={false} className="cr-btn cr-btn--ghost cr-btn--sm">Cerrar</Link>
       </div>
-
-      <div className="cr-md__cifras">
-        <div className="cr-md__cifra">
-          <p className="cr-label cr-flush">Por facturar</p>
-          <span className="cr-mono">{formatMoney(cobrable)}</span>
-        </div>
-        <div className="cr-md__cifra">
-          <p className="cr-label cr-flush">Por entregar</p>
-          <span className="cr-mono">
-            {fila.porEntregar > 0 ? formatMoney(fila.porEntregar) : '—'}
-          </span>
-        </div>
-        <div className="cr-md__cifra">
-          <p className="cr-label cr-flush">Avance</p>
-          <span className="cr-mono">{fila.pctFacturado}%</span>
-        </div>
+      <div className="cr-ordenes__resumen">
+        <div><span className="cr-label">Por facturar</span><span className="cr-mono">{formatMoney(fila.porSubir + fila.enRevision)} {moneda}</span></div>
+        <div><span className="cr-label">Por entregar</span><span className="cr-mono">{formatMoney(fila.porEntregar)} {moneda}</span></div>
+        <div><span className="cr-label">Avance</span><span className="cr-mono">{fila.pctFacturado}%</span></div>
       </div>
-
-      {/* ORDEN -> ENTRADAS -> FACTURAS.
-          Antes el cuerpo iba orden -> ARTICULOS -> entradas, y cada articulo
-          traia seis cifras: con cinco articulos la ficha eran tres pantallas de
-          scroll. Pero la jerarquia del negocio no es esa —una orden tiene
-          entradas, y cada entrada puede llevar varias facturas—, asi que el
-          nivel de en medio es la ENTRADA, que ademas es lo unico sobre lo que
-          el proveedor puede actuar. Los articulos pasan a ser una linea de
-          resumen; el desglose completo esta en /ordenes/[docEntry]. */}
-      <div className="cr-md__cuerpo">
-        <div className="cr-md__bloque">
-          <dl className="cr-md__datos cr-mt-0">
-            <div className="cr-md__dato">
-              <dt>Emitida</dt>
-              <dd>{formatDate(fila.oc.DocDate)}</dd>
-            </div>
-            <div className="cr-md__dato">
-              <dt>Total</dt>
-              <dd>
-                {formatMoney(fila.oc.DocTotal)} {moneda}
-              </dd>
-            </div>
-            <div className="cr-md__dato">
-              <dt>Plazo</dt>
-              {/* El plazo DE ESTA ORDEN, no el del proveedor: puede pactarse
-                  distinto para una compra concreta. Y los dias corren desde que
-                  se sube la factura al portal, no desde la entrega fisica. */}
-              <dd>{describirPlazo(plazos, fila.oc.PaymentGroupCode)}</dd>
-            </div>
-          </dl>
-
-          <p className="cr-small cr-muted cr-mt-3 cr-flush">
-            {fila.entregas.length === 1 ? '1 entrada' : `${fila.entregas.length} entradas`} ·{' '}
-            {fila.entregas.filter((e) => e.estado !== 'por_subir').length} facturada
-            {fila.entregas.filter((e) => e.estado !== 'por_subir').length === 1 ? '' : 's'}
-            {articulos.length > 0 &&
-              ` · ${articulos.length === 1 ? '1 producto' : `${articulos.length} productos`}, ${formatQty(
-                articulos.reduce((t, a) => t + a.pendiente, 0),
-              )} sin recibir`}
-          </p>
-        </div>
-
-        {renglonesError && (
-          <div className="cr-md__bloque">
-            <p className="cr-small cr-muted cr-flush">
-              No se pudo leer el detalle por articulo. Las cifras de arriba siguen siendo
-              correctas.
-            </p>
-          </div>
-        )}
-
-        {fila.entregas.length === 0 ? (
-          <div className="cr-md__bloque">
-            <p className="cr-small cr-muted cr-flush">
-              Esta orden todavia no tiene entradas de mercancia registradas.
-            </p>
-          </div>
-        ) : (
-          fila.entregas.map((entrega) => {
-            const sello = selloDe(entrega.factura, entrega.estado)
-            return (
-              <div className="cr-md__bloque" key={entrega.docEntry}>
-                <div className="cr-md__entrada">
-                  <span className="cr-md__celda">
-                    <span className="cr-code cr-md__titulo">Entrada {entrega.docNum}</span>
-                    <span className="cr-md__sub">{formatDate(entrega.fecha)}</span>
-                  </span>
-                  <span className="cr-md__celda" data-align="right">
-                    <span className="cr-mono">
-                      {formatMoney(entrega.importe)} {moneda}
-                    </span>
-                    <span className="cr-md__sub">
-                      <span className="cr-status" data-tone={sello.tone}>
-                        {sello.texto}
-                      </span>
-                    </span>
-                  </span>
-                </div>
-
-
-                {/* Las facturas de ESTA entrada. Una entrada puede llevar
-                    varias —una parcial, una nota de credito, un reemplazo tras
-                    una devolucion—; enseñar solo la que manda escondia las
-                    demas. Con una sola no se lista: el sello de arriba ya la
-                    dice, y repetirla seria ruido. */}
-                {entrega.facturas.length > 1 && (
-                  <div className="cr-mt-2">
-                    <p className="cr-label cr-flush">Facturas</p>
-                    {entrega.facturas.map((f) => (
-                      <div className="cr-md__factura" key={f.folio}>
-                        <span className="cr-code">{f.folio}</span>
-                        <span className="cr-md__sub">
-                          {estatusFactura(f.status).label}
-                          {f.importe !== null && ` · ${formatMoney(f.importe)}`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })
-        )}
+      <dl className="cr-ordenes__datos">
+        <div><dt>Emitida</dt><dd>{formatDate(fila.oc.DocDate)}</dd></div>
+        <div><dt>Total</dt><dd>{formatMoney(fila.oc.DocTotal)} {moneda}</dd></div>
+        <div><dt>Plazo de pago</dt><dd>{describirPlazo(plazos, fila.oc.PaymentGroupCode)}</dd></div>
+      </dl>
+      <p className="cr-listado__aviso">{fila.entregas.length} entradas · {fila.entregas.filter((e) => e.estado !== 'por_subir').length} facturadas
+        {articulos.length > 0 && ` · ${articulos.length} productos · ${formatQty(articulos.reduce((t, a) => t + a.pendiente, 0))} sin recibir`}</p>
+      {renglonesError && <p className="cr-listado__aviso">No se pudo consultar el detalle de los artículos.</p>}
+      <div className="cr-panel__head">
+        <h3 className="cr-panel__title">Entradas y facturas</h3>
+        <div className="cr-panel__controles"><Buscador base="/ordenes" parametro="dq" termino={termino} filtros={filtros}
+          placeholder="Entrada o factura" etiqueta="Buscar en el detalle de la orden" /></div>
       </div>
-
-      <div className="cr-md__pie">
-        <Link
-          href={`/ordenes/${fila.oc.DocEntry}`}
-          className="cr-btn cr-btn--block"
-          data-variant={hayQueFacturar ? undefined : 'secondary'}
-        >
+      {documentos.length === 0 ? <div className="cr-empty cr-empty--compacto"><p>{termino ? 'Sin resultados en el detalle.' : 'Esta orden todavía no tiene entradas.'}</p></div> :
+        <TablaAdaptable key={`${fila.oc.DocEntry}-${termino}`} expandible base="/ordenes" unidad="documentos" clavePagina="dp" pagina={pagina} reservaInferior={57} filtros={{ ...filtros, dq: termino || undefined }}
+          className="cr-table cr-table--stack cr-listado__tabla cr-ordenes__documentos"
+          cabecera={<thead><tr><th>Entrada</th><th>Factura</th><th>Estado</th><th className="cr-num">Importe</th></tr></thead>}
+          filas={documentos.map(({ entrega, factura }) => {
+            const sello = factura ? estatusFactura(factura.status) : { label: entrega.estado === 'facturada_b1' ? 'En B1' : 'Sin factura', tone: entrega.estado === 'facturada_b1' ? null : 'warn' }
+            return <tr key={`${entrega.docEntry}-${factura?.folio ?? 'sin-factura'}`}>
+              <td data-label="Entrada" className="cr-code" title={formatDate(entrega.fecha)}>{entrega.docNum}</td>
+              <td data-label="Factura" className="cr-code" title={factura?.folio}>{factura?.folio ?? '—'}</td>
+              <td data-label="Estado" title={sello.label}><span className="cr-badge" data-tone={sello.tone ?? undefined}>{sello.label}</span></td>
+              <td data-label="Importe" className="cr-num">{formatMoney(factura?.importe ?? entrega.importe)}</td>
+            </tr>
+          })} />}
+      <div className="cr-ordenes__pie">
+        <Link href={`/ordenes/${fila.oc.DocEntry}`} className={`cr-btn cr-btn--sm ${hayQueFacturar ? 'cr-btn--primary' : 'cr-btn--secondary'}`}>
           {hayQueFacturar ? 'Cargar factura' : 'Ver la orden completa'}
         </Link>
       </div>
-    </div>
+    </aside>
   )
 }

@@ -18,8 +18,28 @@ import Link from 'next/link'
  * nada que ahorrar y si un salto de pagina que costaria una ida a SAP.
  */
 
-/** Filas por pagina. Cambiarlo aqui lo cambia en todo el portal. */
+/**
+ * Filas por pagina por defecto. Cambiarlo aqui lo cambia en todo el portal.
+ *
+ * Cinco es el tamano de los listados de FILAS ALTAS —/ordenes y /entradas
+ * apilan dos renglones por celda—, no un maximo. Un listado de filas de una
+ * sola linea cabe muy por encima de eso, y dejarlo en cinco desperdicia
+ * pantalla y obliga a paginar lo que se veia de un vistazo: por eso `paginar`
+ * acepta su propio tamano.
+ */
 export const POR_PAGINA = 5
+
+/**
+ * Filas de UNA LINEA que caben sin que el pie de la tabla se salga de un 1080p.
+ *
+ * Es la regla de bulto de la spec (§07: una linea → ~18) y no una medida del
+ * alto real disponible. La spec pide medir con un hook y recalcular en
+ * `resize`; aqui no se hace porque estas pantallas son Server Components y
+ * convertir la tabla a cliente solo para contar pixeles costaria mas de lo que
+ * arregla. Si algun dia el pie queda bajo el pliegue en una pantalla concreta,
+ * ESTE es el numero que se toca.
+ */
+export const POR_PAGINA_LINEA = 18
 
 /**
  * Los numeros de la pagina, sin las filas.
@@ -53,13 +73,20 @@ export interface Pagina<T> extends PaginaMeta {
  * de fallar —una URL vieja, despues de que KPS cierre documentos, no deberia
  * dar una pantalla en blanco sino la ultima pagina que si existe—.
  */
-export function paginar<T>(filas: readonly T[], solicitada: string | undefined): Pagina<T> {
+export function paginar<T>(
+  filas: readonly T[],
+  solicitada: string | undefined,
+  porPagina: number = POR_PAGINA,
+): Pagina<T> {
   const total = filas.length
-  const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA))
+  // Un tamano de cero o negativo dejaria `totalPaginas` en infinito y la pagina
+  // en blanco. Se acota antes de dividir.
+  const tamano = Math.max(1, Math.trunc(porPagina))
+  const totalPaginas = Math.max(1, Math.ceil(total / tamano))
   const pedida = Number.parseInt(solicitada ?? '1', 10)
   const numero = Math.min(Math.max(Number.isFinite(pedida) ? pedida : 1, 1), totalPaginas)
-  const inicio = (numero - 1) * POR_PAGINA
-  const visibles = filas.slice(inicio, inicio + POR_PAGINA)
+  const inicio = (numero - 1) * tamano
+  const visibles = filas.slice(inicio, inicio + tamano)
   return {
     numero,
     totalPaginas,
@@ -99,54 +126,64 @@ interface Props {
   unidad?: string
   /** Texto extra, a continuacion del conteo. */
   nota?: string
+  /**
+   * Pie DEL PANEL en vez de bloque suelto: se pega al borde inferior, con su
+   * hairline y su franja. La clase va en el propio `.cr-pager` y no en un div
+   * que lo envuelva, porque envolverlo dejaba dos paddings, uno dentro de otro.
+   */
+  pie?: boolean
 }
 
 /**
  * La barra de paginacion.
  *
- * Con una sola pagina se sigue pintando —solo el conteo, sin los botones—: que
- * la barra aparezca y desaparezca segun cuantas filas haya mueve el pie de la
- * tabla y descoloca a quien la estaba mirando.
+ * Con una sola página se mantienen el conteo y las flechas deshabilitadas,
+ * para conservar la misma composición y altura del pie.
  */
-export function Paginador({ pagina, href, unidad = 'documentos', nota }: Props) {
+function FlechaPagina({ anterior = false }: { anterior?: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={anterior ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6'} />
+    </svg>
+  )
+}
+
+export function Paginador({ pagina, href, unidad = 'documentos', nota, pie }: Props) {
   const { numero, totalPaginas, desde, hasta, total } = pagina
-  const hayVarias = totalPaginas > 1
 
   return (
-    <div className="cr-pager">
+    <div className={pie ? 'cr-pager cr-pager--pie' : 'cr-pager'}>
       <span>
         {total === 0
           ? `Sin ${unidad}`
-          : hayVarias
-            ? `${desde}–${hasta} de ${total} ${unidad}`
-            : `${total} ${unidad}`}
+          : `Mostrando ${desde} - ${hasta} de ${total} ${unidad}`}
         {nota !== undefined && ` · ${nota}`}
       </span>
 
-      {hayVarias && (
-        <span className="cr-row cr-row--wide">
+      {total > 0 && (
+        <nav className="cr-pager__nav" aria-label={`Paginación de ${unidad}`}>
           {numero > 1 ? (
-            <Link className="cr-btn cr-btn--sm" data-variant="secondary" href={href(numero - 1)}>
-              Anterior
+            <Link className="cr-pager__arrow" aria-label="Página anterior" title="Página anterior" href={href(numero - 1)} scroll={false}>
+              <FlechaPagina anterior />
             </Link>
           ) : (
-            <button type="button" className="cr-btn cr-btn--sm" data-variant="secondary" disabled>
-              Anterior
+            <button type="button" className="cr-pager__arrow" aria-label="Página anterior" disabled>
+              <FlechaPagina anterior />
             </button>
           )}
-          <span>
-            Pagina {numero} de {totalPaginas}
+          <span className="cr-pager__page" aria-current="page">
+            Página {numero} de {totalPaginas}
           </span>
           {numero < totalPaginas ? (
-            <Link className="cr-btn cr-btn--sm" data-variant="secondary" href={href(numero + 1)}>
-              Siguiente
+            <Link className="cr-pager__arrow" aria-label="Página siguiente" title="Página siguiente" href={href(numero + 1)} scroll={false}>
+              <FlechaPagina />
             </Link>
           ) : (
-            <button type="button" className="cr-btn cr-btn--sm" data-variant="secondary" disabled>
-              Siguiente
+            <button type="button" className="cr-pager__arrow" aria-label="Página siguiente" disabled>
+              <FlechaPagina />
             </button>
           )}
-        </span>
+        </nav>
       )}
     </div>
   )

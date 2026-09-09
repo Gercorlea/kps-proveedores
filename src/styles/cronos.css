@@ -702,7 +702,12 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoratio
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
-.cr-pill:hover { background: var(--cr-surface-2); color: var(--cr-ink); }
+/* `text-decoration: none` porque una pildora que es ENLACE —los chips de filtro
+   de /facturas y /ordenes— heredaba el subrayado de `a:hover` y se leia como
+   texto de parrafo. Un chip es un control: se marca con el fondo, no con una
+   raya. El resto de los controles del sistema ya lo apagaban; este se habia
+   quedado fuera. */
+.cr-pill:hover { background: var(--cr-surface-2); color: var(--cr-ink); text-decoration: none; }
 
 /* `aria-pressed` cuando la pildora es un boton; `aria-current` cuando es un
    enlace —un enlace no admite aria-pressed— y el filtro vive en la URL. */
@@ -812,6 +817,14 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoratio
 .cr-panel__body[data-flush="true"] { padding: 0; }
 .cr-panel__body > .cr-table:not(.cr-table-scroll > .cr-table),
 .cr-panel__body > .cr-table-scroll { border: 0; border-radius: 0; }
+
+/* La tabla tambien puede colgar del panel SIN cuerpo de por medio, que es como
+   va un listado: de canto a canto y sin el padding del `__body`. Sin esto se
+   queda con su propio borde dentro del borde del panel —una caja dentro de
+   otra, §05— y con las esquinas redondeadas asomando sobre la franja de
+   filtros. */
+.cr-panel > .cr-table:not(.cr-table-scroll > .cr-table),
+.cr-panel > .cr-table-scroll { border: 0; border-radius: 0; }
 
 /* --------------------------------------------------------------------------
    08 · INFO-BOX
@@ -1445,19 +1458,24 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoratio
    excluyentes. El activo se marca con tinta solida, no con violeta. */
 .cr-segment {
   display: inline-flex;
-  padding: 2px;
-  gap: 2px;
+  padding: 0;
+  gap: 0;
   border: 1px solid var(--cr-line);
-  border-radius: var(--cr-r-sm);
-  background: var(--cr-surface-2);
+  border-radius: var(--cr-r-xs);
+  background: var(--cr-bg);
+  overflow: hidden;
 }
 
 .cr-segment__item {
   appearance: none;
   border: 0;
+  border-right: 1px solid var(--cr-line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   text-decoration: none;
-  border-radius: var(--cr-r-xs);
+  border-radius: 0;
   padding: 5px var(--cr-s3);
   font-family: var(--cr-font);
   font-size: 12px;
@@ -1468,14 +1486,30 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoratio
   transition: background 120ms ease, color 120ms ease;
 }
 
+.cr-segment__item:last-child { border-right: 0; }
 .cr-segment__item:hover { color: var(--cr-ink); text-decoration: none; }
 
+/* El activo va en TINTA con texto blanco, que es lo que fija la spec
+   (`.cr-segment__item--active { background: var(--cr-ink); color: #fff }`).
+
+   Estaba en blanco sobre el pozo gris —el idiom de la pestaña levantada— y ahi
+   la opcion elegida pesa MENOS que las otras dos: el fondo claro es el mismo de
+   la pagina y lo unico que la marcaba era un hairline. La misma inversion que
+   ya usa `.cr-pill[aria-current]`, para que elegir se vea igual en todo el
+   portal. */
 .cr-segment__item--active,
 .cr-segment__item[aria-selected="true"],
 .cr-segment__item[aria-current="page"] {
-  background: var(--cr-bg);
-  color: var(--cr-ink);
-  box-shadow: inset 0 0 0 1px var(--cr-line);
+  background: var(--cr-ink);
+  color: var(--cr-on-accent);
+}
+
+/* El hover generico aclara el texto a `--cr-ink`, que sobre el activo en tinta
+   lo dejaria negro sobre negro. */
+.cr-segment__item--active:hover,
+.cr-segment__item[aria-selected="true"]:hover,
+.cr-segment__item[aria-current="page"]:hover {
+  color: var(--cr-on-accent);
 }
 
 .cr-segment__item:focus-visible { outline: none; box-shadow: var(--cr-ring); }
@@ -1488,7 +1522,13 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoratio
   color: var(--cr-ink-3);
   margin-left: 6px;
 }
-.cr-segment__item[aria-current="page"] .cr-segment__count { color: var(--cr-ink-2); }
+/* Sobre el activo, la cifra apagada se apaga contra SU fondo, no contra el
+   blanco: `--cr-ink-2` sobre la tinta del activo es gris oscuro sobre negro. */
+.cr-segment__item--active .cr-segment__count,
+.cr-segment__item[aria-selected="true"] .cr-segment__count,
+.cr-segment__item[aria-current="page"] .cr-segment__count {
+  color: rgba(255, 255, 255, 0.62);
+}
 
 /* Pestanas de nivel 1 — subrayado, no segmentado.
  *
@@ -1671,6 +1711,10 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoratio
 @media (max-width: 640px) {
   .cr-filtros__buscar { width: 100%; }
   .cr-filtros__fila { justify-content: flex-start; }
+  /* En la cabecera de un panel los controles pasan a ocupar el renglon entero y
+     a alinearse por la izquierda: apretados contra el borde derecho y ya
+     envueltos, los chips quedaban descolgados bajo el buscador. */
+  .cr-panel__controles { width: 100%; justify-content: flex-start; }
 }
 
 /* Slider — el pulgar es el unico control del sistema en violeta por defecto,
@@ -2007,6 +2051,247 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoratio
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* --------------------------------------------------------------------------
+   20 · LISTADO DENTRO DE UN PANEL
+
+   Un listado es UN SOLO panel: cabecera, franja de filtros, tabla de canto a
+   canto y pie de paginacion. Ni una caja por pieza ni una tabla flotando con su
+   propio borde dentro de otro borde —§05 de la spec: no se anidan cajas—.
+
+   Las piezas viven aqui y no en la pantalla porque son de todas: la primera en
+   usarlas es /facturas, pero /complementos, /entradas y /pagos son el mismo
+   patron y no deben reinventarlo (§12).
+   -------------------------------------------------------------------------- */
+
+/* Los controles del listado —chips y buscador— VIVEN EN LA CABECERA DEL PANEL,
+   en la misma linea que su titulo y contra el borde derecho (§07, primer caso).
+
+   Empezaron en una franja aparte bajo la cabecera y el cliente los subio aqui:
+   la franja gastaba 48px de alto en una tira medio vacia, que es una fila menos
+   de tabla por pantalla. Con dos filas de controles —pestañas Y chips, como
+   /ordenes— si hace falta la franja; con una, no.
+
+   El buscador va EL ULTIMO, pegado al borde derecho. La regla del §07 —el
+   buscador primero— es para una franja anclada a la IZQUIERDA, donde lo que
+   baila al cambiar de filtro es la x de arranque. Aqui el ancla es el borde
+   derecho, asi que el que no se puede mover es el ultimo, y ademas deja la
+   pantalla leyendose igual que /ordenes. */
+.cr-panel__controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--cr-s2);
+}
+
+/* TODO LO QUE VIVE EN LA CABECERA VA A LA TALLA COMPACTA, y a la misma altura.
+   La regla es del contexto y no del componente —el mismo buscador a tamano
+   normal sigue valiendo en una franja de filtros—, por eso se escribe aqui y no
+   dentro de `.cr-search`.
+
+   La altura se CLAVA en 28px en los dos, en vez de dejarla salir del padding
+   mas el interlineado: con el `line-height: 1.55` que heredan del body, el
+   mismo padding daba 34.6px al segmento y 28.6px al buscador. Seis pixeles de
+   desnivel entre dos controles que comparten renglon. */
+.cr-panel__controles .cr-segment,
+.cr-panel__controles .cr-search { height: 28px; }
+
+.cr-panel__controles .cr-segment__item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.cr-panel__controles .cr-filtros__buscar { width: 236px; }
+.cr-panel__controles .cr-search__input { padding: 0 10px; font-size: 12px; }
+.cr-panel__controles .cr-search__accion { width: 26px; }
+.cr-panel__controles .cr-search__accion > svg { width: 13px; height: 13px; }
+
+/* La cabecera con controles SI envuelve. Sin esto, el buscador —340px fijos—
+   desborda el panel en cuanto la ventana se estrecha, porque `.cr-panel__head`
+   no envuelve. Se acota con `:has` para no tocar las cabeceras que solo llevan
+   un titulo y un boton. */
+.cr-panel__head:has(.cr-panel__controles) { flex-wrap: wrap; }
+
+/* El paginado como PIE DEL PANEL, no como bloque suelto debajo de la tabla.
+   `.cr-pager` a secas solo lleva `padding-top`, que fuera del panel esta bien y
+   dentro deja el conteo pegado al borde sin respirar. */
+.cr-pager--pie {
+  padding: var(--cr-s3) 18px;
+  border-top: 1px solid var(--cr-line-soft);
+  background: var(--cr-bg);
+}
+.cr-pager { gap: 12px; flex-wrap: wrap; }
+.cr-pager__nav { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.cr-pager__page { font: 400 12px var(--cr-mono); color: var(--cr-ink-2); white-space: nowrap; }
+.cr-pager__arrow { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 28px; border: 1px solid var(--cr-line-2); border-radius: var(--cr-r-xs); background: var(--cr-bg); color: var(--cr-ink-2); cursor: pointer; }
+.cr-pager__arrow:hover { background: var(--cr-surface-2); text-decoration: none; }
+.cr-pager__arrow:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 2px; }
+.cr-pager__arrow:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Estado vacio DENTRO del panel. El panel ya es la caja: este no dibuja otra ni
+   gasta los 40px de aire del suelto, que dejaban un cuadro alto con una frase
+   flotando en medio (§10). */
+.cr-empty--compacto {
+  border: 0;
+  border-radius: 0;
+  padding: var(--cr-s6) 18px;
+  text-align: left;
+}
+.cr-empty--compacto p { margin-left: 0; margin-right: 0; }
+
+/* Chip de icono. El estado de un archivo es DATO, no adorno (§11): dice si el
+   XML esta o falta en el ancho de un cuadrito, donde la etiqueta de texto
+   —"sin PDF"— gastaba media columna.
+
+   Forma canonica: 16px, radio 2px, SIN contorno, fondo en tinte del tono e
+   icono de 10px en su color. El texto entero va en el `title`. */
+.cr-chip-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--cr-r-xs);
+  background: var(--cr-surface-3);
+  color: var(--cr-ink-2);
+  flex: none;
+}
+.cr-chip-ico > svg { width: 10px; height: 10px; }
+
+a.cr-chip-ico:hover { background: var(--cr-ink); color: var(--cr-on-accent); }
+
+.cr-chip-ico[data-tone='ok'] { background: var(--cr-ok-tint); color: var(--cr-ok-ink); }
+.cr-chip-ico[data-tone='warn'] { background: var(--cr-warn-tint); color: var(--cr-warn-ink); }
+.cr-chip-ico[data-tone='danger'] { background: var(--cr-danger-tint); color: var(--cr-danger-ink); }
+.cr-chip-ico[data-tone='ai'] { background: var(--cr-accent-tint); color: var(--cr-accent-ink); }
+
+/* Ausente. El hueco SE RESERVA aunque no haya archivo: es lo que hace que los
+   chips de todas las filas caigan en la misma x y que el alto no cambie. */
+.cr-chip-ico[data-tone='vacio'] { background: transparent; color: var(--cr-line-2); }
+
+/* La tira de chips de una celda. `nowrap` y `flex: none` en cada chip: lo unico
+   que puede ceder en una fila estrecha es el texto largo, nunca los chips
+   (§06 y §13). */
+.cr-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+/* Ranura de ancho fijo para el contador que acompana a un chip. Se reserva
+   siempre, lleve numero o no. */
+.cr-chips__num {
+  display: inline-block;
+  width: 11px;
+  font-family: var(--cr-mono);
+  font-size: 10px;
+  color: var(--cr-ink-3);
+  text-align: left;
+}
+
+/* Composición compartida por los listados del portal. */
+.cr-main { container-type: inline-size; container-name: contenido-portal; }
+.cr-ordenes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.cr-ordenes > * { min-width: 0; }
+.cr-vistas-pagina { margin-top: 16px; }
+.cr-vistas-pagina .cr-segment { height: 32px; max-width: 100%; }
+.cr-vistas-pagina .cr-segment__item { padding: 6px 12px; font-size: 12px; }
+@media (max-width: 600px) {
+  .cr-vistas-pagina .cr-segment { height: auto; flex-wrap: wrap; }
+}
+.cr-ordenes__tabla.cr-listado__tabla tbody td { padding-top: 7px; padding-bottom: 7px; }
+.cr-ordenes__tabla tr[data-seleccionada='true'] > td { background: var(--cr-surface-3); }
+.cr-ordenes__id { width: 80px; }
+.cr-ordenes__fecha { width: 110px; }
+.cr-ordenes__importe { width: 160px; }
+.cr-ordenes__estado { width: 230px; }
+.cr-ordenes__accion { width: 110px; }
+.cr-ordenes__resumen { display: grid; grid-template-columns: 1fr 1fr 70px; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--cr-line-soft); }
+.cr-ordenes__resumen > div { display: flex; flex-direction: column; gap: 8px; }
+.cr-ordenes__datos { margin: 0; padding: 12px 18px; display: grid; gap: 8px; }
+.cr-ordenes__datos > div { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+.cr-ordenes__datos dt { color: var(--cr-ink-2); }
+.cr-ordenes__datos dd { margin: 0; font-family: var(--cr-mono); }
+.cr-ordenes__documentos th:first-child { width: 64px; }
+.cr-ordenes__documentos th:last-child { width: 124px; }
+.cr-ordenes__documentos tbody td { font-size: 12px; }
+.cr-ordenes__pie { padding: 14px 18px; border-top: 1px solid var(--cr-line-soft); display: flex; justify-content: flex-end; }
+/* El detalle permanece lateral; la lista adapta sus columnas al ancho real. */
+.cr-ordenes[data-detalle='true'] { grid-template-columns: minmax(0, 1fr) minmax(0, 32%); }
+.cr-ordenes[data-detalle='true'] .cr-ordenes__id { width: 64px; }
+.cr-ordenes[data-detalle='true'] .cr-ordenes__fecha { width: 96px; }
+.cr-ordenes[data-detalle='true'] .cr-ordenes__importe { width: 140px; }
+.cr-ordenes[data-detalle='true'] .cr-ordenes__estado { width: 150px; }
+.cr-ordenes[data-detalle='true'] .cr-ordenes__accion { width: 112px; }
+.cr-ordenes__tabla.cr-listado__tabla td[data-label='Acción'] { text-overflow: clip; }
+.cr-ordenes__tabla td[data-label='Acción'] > .cr-btn { vertical-align: middle; }
+.cr-ordenes[data-detalle='true'] .cr-ordenes__tabla :is(th, td) { padding-left: 6px; padding-right: 6px; }
+.cr-ordenes[data-detalle='true'] .cr-ordenes__tabla .cr-badge { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.cr-ordenes__detalle .cr-panel__head > div { min-width: 0; }
+.cr-ordenes__detalle .cr-ordenes__documentos th:first-child { width: 56px; }
+.cr-ordenes__detalle .cr-ordenes__documentos th:last-child { width: 112px; }
+.cr-ordenes__detalle .cr-ordenes__documentos :is(th, td) { padding-left: 6px; padding-right: 6px; }
+.cr-ordenes__detalle .cr-badge { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+@media (min-width: 601px) and (max-width: 1200px) {
+  .cr-ordenes__estado { width: 170px; }
+  .cr-ordenes__importe { width: 140px; }
+  .cr-ordenes__fecha { width: 100px; }
+}
+@media (max-width: 600px) {
+  .cr-ordenes colgroup { display: none; }
+  .cr-ordenes .cr-segment { height: auto; flex-wrap: wrap; }
+}
+.cr-listado__aviso { margin: 0; max-width: none; padding: 8px 18px; border-bottom: 1px solid var(--cr-line-soft); font-size: 12px; color: var(--cr-ink-2); }
+.cr-listado__proveedor { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.cr-listado__nombre { min-width: 72px; overflow: hidden; text-overflow: ellipsis; }
+.cr-listado__codigo { flex: none; font: 400 10px var(--cr-mono); color: var(--cr-ink-3); }
+.cr-entradas__orden { width: 110px; }
+.cr-entradas__fecha { width: 120px; }
+.cr-entradas__total { width: 170px; }
+.cr-entradas__entregas { width: 110px; }
+.cr-entradas__accion { width: 160px; }
+@media (min-width: 601px) and (max-width: 1200px) {
+  .cr-entradas__orden { width: 80px; }
+  .cr-entradas__fecha { width: 100px; }
+  .cr-entradas__total { width: 130px; }
+  .cr-entradas__entregas { width: 100px; }
+  .cr-entradas__accion { width: 140px; }
+}
+@media (max-width: 600px) {
+  .cr-entradas__tabla colgroup { display: none; }
+}
+:is(.cr-page-head--facturas, .cr-page-head--listado) { border-bottom: 0; padding-bottom: 0; margin-bottom: 24px; align-items: center; }
+:is(.cr-page-head--facturas, .cr-page-head--listado) p { margin-top: 4px; }
+:is(.cr-facturas, .cr-listado) .cr-panel__head { border-bottom-color: var(--cr-line-soft); }
+:is(.cr-facturas, .cr-listado) .cr-panel__controles { flex-wrap: wrap; gap: 8px; }
+:is(.cr-facturas, .cr-listado) .cr-filtros__buscar { width: 208px; max-width: 100%; }
+:is(.cr-facturas, .cr-listado) .cr-search { height: 30px; }
+:is(.cr-facturas, .cr-listado) .cr-segment { height: 32px; }
+:is(.cr-facturas, .cr-listado) .cr-segment__item { padding: 6px 12px; font-size: 12px; }
+:is(.cr-facturas, .cr-listado) .cr-search__accion[type='submit'] { order: -1; border: 0; }
+:is(.cr-facturas, .cr-listado) .cr-search__input { padding-left: 0; }
+:is(.cr-facturas, .cr-listado) .cr-pager--pie { background: var(--cr-bg); color: var(--cr-ink-3); padding: 14px 16px; }
+.cr-tabla-adaptable > .cr-table { border: 0 !important; border-radius: 0; }
+.cr-tabla-expandible > .cr-table { border: 0 !important; border-radius: 0; }
+.cr-tabla-expandible[data-expandida='true'] { overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; }
+.cr-tabla-expandible[data-expandida='true'] thead th { position: sticky; top: 0; z-index: 1; background: var(--cr-bg); }
+.cr-tabla-expandible__toggle { display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 4px 0; background: transparent; color: var(--cr-ink-2); font: 400 12px var(--cr-font); cursor: pointer; }
+.cr-tabla-expandible__toggle:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 3px; }
+:is(.cr-facturas__tabla, .cr-listado__tabla) { table-layout: fixed; }
+:is(.cr-facturas__tabla, .cr-listado__tabla) thead th { padding: 7px 10px; font-size: 9px; letter-spacing: .1em; border-bottom-color: var(--cr-line-soft); }
+:is(.cr-facturas__tabla, .cr-listado__tabla) tbody td { height: 44px; padding: 10px; font-size: 13px; color: var(--cr-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cr-facturas__tabla th:first-child { width: 16%; }
+.cr-facturas__tabla th:last-child { width: 14%; }
+.cr-entradas__tabla tbody td { padding-top: 7px; padding-bottom: 7px; }
+@media (min-width: 901px) and (max-width: 1200px) {
+  :is(.cr-facturas__tabla, .cr-listado__tabla) thead th, :is(.cr-facturas__tabla, .cr-listado__tabla) tbody td { padding-left: 6px; padding-right: 6px; font-size: 10px; }
+}
+@media (max-width: 600px) {
+  :is(.cr-facturas, .cr-listado) .cr-filtros__buscar { width: 100%; }
+  :is(.cr-facturas__tabla, .cr-listado__tabla) tbody td { height: 32px; }
 }
 
 /* --------------------------------------------------------------------------

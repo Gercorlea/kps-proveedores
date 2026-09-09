@@ -159,7 +159,7 @@ export const ETIQUETA_PROVEEDOR: Record<EstatusFactura, string> = {
   EN_REVISION: 'En revision',
   APROBADA_PAGO: 'Aprobada para pago',
   CUENTAS_POR_PAGAR: 'En cuentas por pagar',
-  PAGADA: 'Pagada · falta tu recibo',
+  PAGADA: 'Pagada',
   CERRADA: 'Cerrada',
   RECHAZADA: 'Rechazada',
 }

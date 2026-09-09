@@ -202,7 +202,7 @@ export const ETIQUETA_PROVEEDOR: Record<InvoiceStatus, string> = {
   APROBADA_PAGO: 'Aprobada para pago',
   REGISTRADA_SAP: 'Registrada',
   CUENTAS_POR_PAGAR: 'En cuentas por pagar',
-  PAGADA: 'Pagada · falta tu recibo',
+  PAGADA: 'Pagada',
   CERRADA: 'Cerrada',
   RECHAZADA: 'Rechazada',
   DUPLICADA: 'Duplicada',

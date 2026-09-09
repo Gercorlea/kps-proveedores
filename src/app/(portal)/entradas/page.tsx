@@ -4,6 +4,9 @@ import { esInterno } from '@/lib/auth/session'
 import { puedeCapturarEntradas } from '@/lib/receipts/acceso'
 import { getSapClient, SapError, type B1PurchaseOrder } from '@/lib/sap'
 import { leerEntradasDeOrdenes } from '@/lib/sap/entradas'
+import { Buscador } from '../buscador'
+import { enlacePagina } from '../paginacion'
+import { TablaAdaptable } from '../tabla-adaptable'
 
 /**
  * P04d · Ordenes por recibir.
@@ -21,13 +24,11 @@ import { leerEntradasDeOrdenes } from '@/lib/sap/entradas'
 export const dynamic = 'force-dynamic'
 
 interface Props {
-  searchParams: Promise<{ q?: string; capturables?: string }>
+  searchParams: Promise<{ q?: string; capturables?: string; p?: string }>
 }
 
 /** Tope de ordenes que se traen por visita. Mismo criterio que /ordenes. */
 const MAX_ORDENES = 400
-/** Filas que se pintan. El resto se alcanza afinando la busqueda. */
-const VISIBLES = 50
 
 function money(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—'
@@ -55,7 +56,8 @@ function compacto(texto: string): string {
 }
 
 function coincide(oc: B1PurchaseOrder, termino: string): boolean {
-  return [String(oc.DocNum), `OC ${oc.DocNum}`, oc.CardCode, oc.CardName ?? ''].some((campo) =>
+  return [String(oc.DocNum), `OC ${oc.DocNum}`, oc.CardCode, oc.CardName ?? '',
+    fecha(oc.DocDate), money(oc.DocTotal), oc.DocCurrency ?? ''].some((campo) =>
     compacto(campo).includes(termino),
   )
 }
@@ -90,7 +92,7 @@ async function cargarAbiertas(cardCode: string | null): Promise<Resultado> {
       if (ordenes.length >= MAX_ORDENES) break
       skip = page.nextSkip
     }
-    return { ok: true, ordenes }
+    return { ok: true, ordenes: ordenes.slice(0, MAX_ORDENES) }
   } catch (error) {
     if (error instanceof SapError) return { ok: false, error: error.message }
     return { ok: false, error: error instanceof Error ? error.message : 'Error desconocido.' }
@@ -98,7 +100,7 @@ async function cargarAbiertas(cardCode: string | null): Promise<Resultado> {
 }
 
 export default async function Page({ searchParams }: Props) {
-  const { q, capturables } = await searchParams
+  const { q, capturables, p } = await searchParams
   const termino = q?.trim() ?? ''
 
   const session = await getSession()
@@ -114,7 +116,7 @@ export default async function Page({ searchParams }: Props) {
   if (!puedeCapturarEntradas(session)) {
     return (
       <>
-        <div className="cr-page-head">
+        <div className="cr-page-head cr-page-head--listado">
           <h1>Entradas de mercancía</h1>
         </div>
         <div className="cr-empty">
@@ -146,10 +148,12 @@ export default async function Page({ searchParams }: Props) {
   // simples: es preferible ofrecer una que pida lote a esconder las que si se
   // pueden por un mal minuto del Service Layer.
   const conGestion = new Set<string>()
+  let gestionDisponible = true
   try {
     for (const it of await getSapClient().listItemsConGestion()) conGestion.add(it.ItemCode)
   } catch {
     // Sin informacion: no se descarta ninguna.
+    gestionDisponible = false
   }
 
   const esSimple = (oc: B1PurchaseOrder): boolean =>
@@ -160,20 +164,19 @@ export default async function Page({ searchParams }: Props) {
   const soloSimples = capturables !== '0'
   const porTermino = termino ? todas.filter((oc) => coincide(oc, compacto(termino))) : todas
   const filtradas = soloSimples ? porTermino.filter(esSimple) : porTermino
-  const ocultas = porTermino.length - filtradas.length
-  const visibles = filtradas.slice(0, VISIBLES)
 
-  // Cuantas entregas lleva ya cada orden visible. Se pide solo de las que caben
-  // en pantalla: preguntar por las 400 seria carisimo y nadie las mira.
-  //
-  // Sin `cardCode` a proposito: quien llega aqui es interno y necesita ver las
-  // ordenes de todos los proveedores.
+  // Una lectura agrupada alimenta todas las páginas del listado acotado.
+  // El proveedor conserva su alcance también en el historial de entregas.
   let entregas = new Map<number, number>()
-  if (visibles.length > 0) {
+  let entregasDisponibles = true
+  let entregasTruncadas = false
+  if (filtradas.length > 0) {
     try {
-      const { porOrden } = await leerEntradasDeOrdenes({
-        ordenes: visibles.map((oc) => ({ DocEntry: oc.DocEntry, DocDate: oc.DocDate })),
+      const { porOrden, truncado } = await leerEntradasDeOrdenes({
+        ordenes: filtradas.map((oc) => ({ DocEntry: oc.DocEntry, DocDate: oc.DocDate })),
+        cardCode: esInterno(session.roles) ? undefined : session.supplierCode,
       })
+      entregasTruncadas = truncado
       entregas = new Map(
         [...porOrden].map(([docEntry, lineas]) => [
           docEntry,
@@ -183,196 +186,129 @@ export default async function Page({ searchParams }: Props) {
         ]),
       )
     } catch {
+      entregasDisponibles = false
       // Si falla, la columna sale vacia. Perder el dato de cuantas entregas
       // lleva no justifica tumbar la pantalla entera.
     }
   }
 
+  const filtros = { q: termino || undefined, capturables: soloSimples ? undefined : '0' }
+  const verTodas = enlacePagina('/entradas', { q: termino || undefined, capturables: '0' }, 1)
+
   return (
     <>
-      <div className="cr-page-head">
+      <div className="cr-page-head cr-page-head--listado">
         <div>
           <h1>Entradas de mercancía</h1>
-          <p className="cr-lead cr-flush">
-            {!resultado.ok
-              ? 'No se pudieron leer las órdenes'
-              : termino !== ''
-                ? `${filtradas.length} de ${todas.length} coinciden con "${termino}"`
-                : `${todas.length} ${todas.length === 1 ? 'orden abierta' : 'órdenes abiertas'}`}
-          </p>
-        </div>
-        <div className="cr-page-head__meta">
-          <span className="cr-meta">Business One</span>
+          <p className="cr-small cr-flush cr-ink-3">Recepción de mercancía contra órdenes de compra abiertas</p>
         </div>
       </div>
 
-      <div className="cr-info">
-        <span className="cr-info__label">Para qué sirve esto</span>
-        <p>
-          Registrar que llegó la mercancía de una orden. La entrada se crea en Business One, que
-          descuenta lo recibido; a partir de ahí el proveedor puede facturar contra lo que llegó de
-          verdad, que es la unidad de facturación de este flujo.
-        </p>
-      </div>
-
-      {!resultado.ok && (
+      {!resultado.ok ? (
         <div className="cr-info" data-tone="danger">
-          <span className="cr-info__label">No hay conexión con Business One</span>
+          <span className="cr-info__label">No se pudieron consultar las órdenes</span>
           <p>{resultado.error}</p>
-          <p className="cr-small">
-            Comprueba la conexión con <span className="cr-mono">pnpm sap:check</span>.
-          </p>
+          <Link href="/entradas" className="cr-btn cr-btn--secondary cr-btn--sm">Reintentar</Link>
         </div>
-      )}
-
-      {resultado.ok && (
-        <>
-          <section className="cr-section">
-            <form method="get" className="cr-field cr-filtros__buscar">
-              <label className="cr-field__label" htmlFor="q">
-                Número de orden o proveedor
-              </label>
-              <div className="cr-btn-row">
-                <input
-                  id="q"
-                  name="q"
-                  className="cr-input"
-                  defaultValue={termino}
-                  placeholder="Escribe un número de orden o un proveedor"
-                  autoComplete="off"
-                />
-                <button type="submit" className="cr-btn">
-                  Buscar
-                </button>
-                {termino !== '' && (
-                  <Link href="/entradas" className="cr-btn" data-variant="secondary">
-                    Limpiar
-                  </Link>
-                )}
-              </div>
-
-              {/* El filtro viaja en la URL y no en un estado del cliente para que
-                  la pantalla siga siendo un Server Component: no hace falta
-                  JavaScript, y el enlace se puede compartir tal cual. */}
-              <div className="cr-segment cr-mt-2" role="group" aria-label="Vista">
-                <Link
-                  href={termino ? `/entradas?q=${encodeURIComponent(termino)}` : '/entradas'}
-                  className="cr-segment__item"
-                  {...(soloSimples ? { 'aria-current': 'page' as const } : {})}
-                >
+      ) : (
+        <section className="cr-panel cr-listado" aria-label="Órdenes por recibir">
+          <div className="cr-panel__head">
+            <div>
+              <h2 className="cr-panel__title">Órdenes por recibir</h2>
+              <p className="cr-small cr-flush cr-ink-3">
+                {filtradas.length} de {todas.length} órdenes abiertas
+              </p>
+            </div>
+            <div className="cr-panel__controles">
+              <Buscador base="/entradas" termino={termino}
+                filtros={{ capturables: filtros.capturables }}
+                placeholder="Orden, proveedor o importe"
+                etiqueta="Buscar por orden, proveedor, fecha o importe" />
+              <div className="cr-segment" role="group" aria-label="Filtrar órdenes">
+                <Link href={enlacePagina('/entradas', { q: termino || undefined }, 1)}
+                  className="cr-segment__item" aria-current={soloSimples ? 'page' : undefined}>
                   Sin lotes
                 </Link>
-                <Link
-                  href={
-                    termino
-                      ? `/entradas?q=${encodeURIComponent(termino)}&capturables=0`
-                      : '/entradas?capturables=0'
-                  }
-                  className="cr-segment__item"
-                  {...(soloSimples ? {} : { 'aria-current': 'page' as const })}
-                >
-                  Todas
-                </Link>
+                <Link href={verTodas} className="cr-segment__item"
+                  aria-current={!soloSimples ? 'page' : undefined}>Todas</Link>
               </div>
+            </div>
+          </div>
 
-              {soloSimples && ocultas > 0 && (
-                <p className="cr-small cr-muted cr-mt-2">
-                  Se ocultan {ocultas}{' '}
-                  {ocultas === 1 ? 'orden que pide' : 'órdenes que piden'} lote, número de serie o
-                  llevan artículos no inventariables. Las de lote sí se pueden capturar —hay que
-                  teclear número, cantidad y caducidad de cada uno—; pulsa <strong>Todas</strong>{' '}
-                  para verlas.
-                </p>
-              )}
-              <div className="cr-field__help">
-                Busca entre las órdenes abiertas. No distingue mayúsculas ni acentos.
+          {todas.length >= MAX_ORDENES && (
+            <p className="cr-listado__aviso">Se muestran las primeras {MAX_ORDENES} órdenes consultadas. La búsqueda se limita a este listado.</p>
+          )}
+          {!gestionDisponible && (
+            <p className="cr-listado__aviso">No se pudo comprobar qué artículos requieren lote o serie. Se muestran todas las órdenes encontradas.</p>
+          )}
+          {(!entregasDisponibles || entregasTruncadas) && (
+            <p className="cr-listado__aviso">
+              {entregasDisponibles
+                ? 'El historial de entregas está incompleto. Los conteos con + son mínimos confirmados.'
+                : 'No se pudo consultar el historial de entregas. Puedes abrir una orden para continuar.'}
+            </p>
+          )}
+
+          {filtradas.length === 0 ? (
+            <div className="cr-empty cr-empty--compacto">
+              <div className="cr-empty__title">
+                {termino ? `Sin resultados para "${termino}".`
+                  : todas.length === 0 ? 'No hay órdenes abiertas.' : 'No hay órdenes sin lotes en esta vista.'}
               </div>
-            </form>
-          </section>
-
-          <section className="cr-section">
-            <span className="cr-label">Órdenes que pueden recibir mercancía</span>
-
-            {visibles.length === 0 ? (
-              <div className="cr-empty">
-                <div className="cr-empty__title">
-                  {termino !== ''
-                    ? `Ninguna orden abierta coincide con "${termino}".`
-                    : 'No hay órdenes abiertas en Business One.'}
-                </div>
-                <p>
-                  {termino !== '' ? (
-                    <Link href="/entradas">Ver todas las abiertas</Link>
-                  ) : (
-                    'Una orden cerrada o cancelada ya no admite entradas de mercancía.'
-                  )}
-                </p>
-              </div>
-            ) : (
-              <>
-                <table className="cr-table cr-table--stack">
-                  <thead>
-                    <tr>
-                      <th>Orden</th>
-                      <th>Proveedor</th>
-                      <th>Emitida</th>
-                      <th className="cr-num">Total</th>
-                      <th className="cr-num">Entregas</th>
-                      <th>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibles.map((oc) => {
-                      const recibidas = entregas.get(oc.DocEntry) ?? 0
-                      return (
-                        <tr key={oc.DocEntry}>
-                          <td className="cr-code" data-label="Orden">
-                            <Link href={`/ordenes/${oc.DocEntry}`}>OC {oc.DocNum}</Link>
-                          </td>
-                          <td data-label="Proveedor">
-                            <span className="cr-mono">{oc.CardCode}</span>
-                            {oc.CardName ? ` · ${oc.CardName}` : ''}
-                          </td>
-                          <td data-label="Emitida">{fecha(oc.DocDate)}</td>
-                          <td className="cr-num" data-label="Total">
-                            {money(oc.DocTotal)} {oc.DocCurrency ?? ''}
-                          </td>
-                          <td className="cr-num" data-label="Entregas">
-                            {recibidas > 0 ? (
-                              <span className="cr-status" data-tone="ok">
-                                {recibidas}
-                              </span>
-                            ) : (
-                              <span className="cr-muted">sin recibir</span>
-                            )}
-                          </td>
-                          <td data-label="Acción">
-                            <Link
-                              href={`/entradas/nueva?oc=${oc.DocEntry}`}
-                              className="cr-btn"
-                             
-                            >
-                              Registrar entrada
-                            </Link>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-
-                <div className="cr-pager">
-                  <span>
-                    {visibles.length} de {filtradas.length}
-                  </span>
-                  {filtradas.length > visibles.length && (
-                    <span>Afina la búsqueda para ver las demás</span>
-                  )}
-                </div>
-              </>
-            )}
-          </section>
-        </>
+              <p>{todas.length === 0
+                ? 'Las órdenes cerradas o canceladas no admiten nuevas entradas.'
+                : <Link href={enlacePagina('/entradas', { capturables: '0' }, 1)}>Ver todas las órdenes abiertas</Link>}</p>
+            </div>
+          ) : (
+            <TablaAdaptable base="/entradas" unidad="órdenes" pagina={p} filtros={filtros}
+              className="cr-table cr-table--stack cr-listado__tabla cr-entradas__tabla"
+              cabecera={
+                <>
+                  <colgroup>
+                    <col className="cr-entradas__orden" /><col />
+                    <col className="cr-entradas__fecha" /><col className="cr-entradas__total" />
+                    <col className="cr-entradas__entregas" /><col className="cr-entradas__accion" />
+                  </colgroup>
+                  <thead><tr>
+                    <th>Orden</th><th>Proveedor</th><th>Emitida</th>
+                    <th className="cr-num">Total</th><th className="cr-num">Entregas</th>
+                    <th className="cr-num">Acción</th>
+                  </tr></thead>
+                </>
+              }
+              filas={filtradas.map((oc) => {
+                const recibidas = entregas.get(oc.DocEntry) ?? 0
+                return (
+                  <tr key={oc.DocEntry}>
+                    <td className="cr-code" data-label="Orden">
+                      <Link href={`/ordenes/${oc.DocEntry}`}>OC {oc.DocNum}</Link>
+                    </td>
+                    <td data-label="Proveedor" title={`${oc.CardName ?? ''} ${oc.CardCode}`}>
+                      <span className="cr-listado__proveedor">
+                        <span className="cr-listado__nombre">{oc.CardName || oc.CardCode}</span>
+                        {oc.CardName && <span className="cr-listado__codigo">{oc.CardCode}</span>}
+                      </span>
+                    </td>
+                    <td className="cr-code" data-label="Emitida">{fecha(oc.DocDate)}</td>
+                    <td className="cr-num" data-label="Total">{money(oc.DocTotal)} {oc.DocCurrency ?? ''}</td>
+                    <td className="cr-num" data-label="Entregas">
+                      {!entregasDisponibles || (entregasTruncadas && recibidas === 0)
+                        ? <span className="cr-muted" title="Historial de entregas no disponible o incompleto">—</span>
+                        : <span className="cr-badge" data-tone={recibidas > 0 ? 'ok' : undefined}>
+                            {recibidas > 0 ? `${recibidas}${entregasTruncadas ? '+' : ''}` : 'Sin recibir'}
+                          </span>}
+                    </td>
+                    <td className="cr-num" data-label="Acción">
+                      <Link href={`/entradas/nueva?oc=${oc.DocEntry}`} className="cr-btn cr-btn--primary cr-btn--sm">
+                        Registrar entrada
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
+            />
+          )}
+        </section>
       )}
     </>
   )
