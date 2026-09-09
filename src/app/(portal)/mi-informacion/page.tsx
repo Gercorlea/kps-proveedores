@@ -79,18 +79,9 @@ function filas(doc: Record<string, unknown>): Array<[string, string]> {
 
 function Matriz({ datos }: { datos: Array<[string, string]> }) {
   return (
-    <div className="cr-card">
-      <table className="cr-table cr-matrix">
-        <tbody>
-          {datos.map(([label, valor]) => (
-            <tr key={label}>
-              <td>{label}</td>
-              <td className="cr-code">{valor}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <dl className="cr-perfil__datos">
+      {datos.map(([label, valor]) => <div key={label}><dt>{label}</dt><dd>{valor}</dd></div>)}
+    </dl>
   )
 }
 
@@ -99,13 +90,13 @@ export default async function Page() {
 
   if (!proveedor) {
     return (
-      <div className="cr-info" data-tone="danger">
-        <span className="cr-info__label">No se pudieron leer tus datos</span>
-        <p>
-          Tu cuenta no esta vinculada a un proveedor, o el portal no pudo leer su ficha. Vuelve a
-          intentarlo; si sigue igual, avisa a KPS.
-        </p>
-      </div>
+      <>
+        <div className="cr-page-head cr-page-head--listado"><div><h1>Mi información</h1><p className="cr-lead cr-flush">Datos de tu cuenta y registro de proveedor</p></div></div>
+        <div className="cr-perfil">
+          {session && <section className="cr-panel"><div className="cr-panel__head"><h2 className="cr-panel__title">Tu cuenta de acceso</h2></div><Matriz datos={[[ 'Nombre', session.name ], ['Correo', session.email], ['Permisos', session.roles.join(', ')]]} /></section>}
+          <section className="cr-panel"><div className="cr-panel__head"><h2 className="cr-panel__title">Registro de proveedor</h2></div><div className="cr-empty cr-empty--compacto"><div className="cr-empty__title">Ficha de proveedor no disponible</div><p>Tu cuenta no está vinculada a un proveedor o no se pudo consultar su ficha. Si deberías tener acceso, contacta a KPS.</p></div></section>
+        </div>
+      </>
     )
   }
 
@@ -145,9 +136,9 @@ export default async function Page() {
 
   return (
     <>
-      <div className="cr-page-head">
+      <div className="cr-page-head cr-page-head--listado">
         <div>
-          <h1>Mi informacion</h1>
+          <h1>Mi información</h1>
           <p className="cr-lead cr-flush">
             {proveedor.nombre}
           </p>
@@ -155,7 +146,7 @@ export default async function Page() {
         <div className="cr-page-head__meta">
           <span className="cr-meta">Proveedor · {proveedor.supplierCode}</span>
           <br />
-          <span className="cr-status" data-tone={proveedor.bloqueado ? 'danger' : 'ok'}>
+          <span className="cr-badge" data-tone={proveedor.bloqueado ? 'danger' : 'ok'}>
             {proveedor.bloqueado ? 'Retenido' : 'Activo'}
           </span>
         </div>
@@ -174,8 +165,9 @@ export default async function Page() {
         </div>
       )}
 
-      <section className="cr-section">
-        <span className="cr-label">Datos fiscales</span>
+      <div className="cr-perfil">
+      <section className="cr-panel">
+        <div className="cr-panel__head"><h2 className="cr-panel__title">Datos fiscales</h2></div>
         <p className="cr-small">
           Es con estos datos con los que tienes que emitir el CFDI. Si alguno no coincide con el que
           usa tu facturador, la factura se devuelve: avisa a KPS antes de emitirla.
@@ -183,8 +175,8 @@ export default async function Page() {
         <Matriz datos={fiscales} />
       </section>
 
-      <section className="cr-section">
-        <span className="cr-label">Domicilio fiscal</span>
+      <section className="cr-panel">
+        <div className="cr-panel__head"><h2 className="cr-panel__title">Domicilio fiscal</h2></div>
         {domicilio.length === 0 ? (
           <div className="cr-empty">
             <div className="cr-empty__title">KPS no tiene tu domicilio fiscal registrado.</div>
@@ -195,8 +187,8 @@ export default async function Page() {
         )}
       </section>
 
-      <section className="cr-section">
-        <span className="cr-label">Contacto registrado</span>
+      <section className="cr-panel">
+        <div className="cr-panel__head"><h2 className="cr-panel__title">Contacto registrado</h2></div>
         {contacto.length === 0 ? (
           <div className="cr-empty">
             <div className="cr-empty__title">No hay contacto registrado.</div>
@@ -210,8 +202,8 @@ export default async function Page() {
         )}
       </section>
 
-      <section className="cr-section">
-        <span className="cr-label">Condiciones comerciales</span>
+      <section className="cr-panel">
+        <div className="cr-panel__head"><h2 className="cr-panel__title">Condiciones comerciales</h2></div>
         <Matriz datos={comerciales} />
       </section>
 
@@ -219,8 +211,8 @@ export default async function Page() {
           acota la facturacion son las ordenes de compra, que tienen su propia
           seccion en el menu. */}
       {esServicio && (
-        <section className="cr-section">
-          <span className="cr-label">Servicios contratados</span>
+        <section className="cr-panel">
+          <div className="cr-panel__head"><h2 className="cr-panel__title">Servicios contratados</h2></div>
           {proveedor.servicios.length === 0 ? (
             <div className="cr-empty">
               <div className="cr-empty__title">No tienes servicios vigentes.</div>
@@ -250,7 +242,7 @@ export default async function Page() {
                       <td data-label="Servicio">{s.title}</td>
                       <td data-label="Alcance">{s.description}</td>
                       <td data-label="Estatus">
-                        <span className="cr-status" data-tone="ok">
+                        <span className="cr-badge" data-tone="ok">
                           Vigente
                         </span>
                       </td>
@@ -266,8 +258,8 @@ export default async function Page() {
       {/* Los de baja van aparte y despues: en la misma tabla, quien la mira por
           encima creeria que tambien puede facturarlos. */}
       {esServicio && proveedor.serviciosBaja.length > 0 && (
-        <section className="cr-section">
-          <span className="cr-label">Servicios dados de baja</span>
+        <section className="cr-panel">
+          <div className="cr-panel__head"><h2 className="cr-panel__title">Servicios dados de baja</h2></div>
           <p className="cr-small">
             Ya no se pueden facturar. Se listan para que sepas por que una factura contra ellos se
             rechaza.
@@ -286,7 +278,7 @@ export default async function Page() {
                   <td data-label="Servicio">{s.title}</td>
                   <td data-label="Alcance">{s.description}</td>
                   <td data-label="Estatus">
-                    <span className="cr-status" data-tone="danger">
+                    <span className="cr-badge" data-tone="danger">
                       De baja
                     </span>
                   </td>
@@ -298,18 +290,18 @@ export default async function Page() {
       )}
 
       {cuenta.length > 0 && (
-        <section className="cr-section">
-          <span className="cr-label">Tu cuenta de acceso</span>
+        <section className="cr-panel">
+          <div className="cr-panel__head"><h2 className="cr-panel__title">Tu cuenta de acceso</h2></div>
           <Matriz datos={cuenta} />
         </section>
       )}
 
-      <section className="cr-section">
-        <span className="cr-label">Registro</span>
+      <section className="cr-panel">
+        <div className="cr-panel__head"><h2 className="cr-panel__title">Registro</h2></div>
         <Matriz datos={registro} />
       </section>
 
-      <section className="cr-section">
+      <section className="cr-panel">
         <div className="cr-info">
           <span className="cr-info__label">Que puedes cambiar y que no</span>
           <p>
@@ -325,6 +317,7 @@ export default async function Page() {
           )}
         </div>
       </section>
+      </div>
     </>
   )
 }
