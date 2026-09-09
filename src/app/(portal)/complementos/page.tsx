@@ -1,3 +1,7 @@
+import { AvisoToast } from '../toast'
+import Link from 'next/link'
+import { Buscador } from '../buscador'
+import { TablaAdaptable } from '../tabla-adaptable'
 import { getSession } from '@/lib/auth/server'
 import { esInterno } from '@/lib/auth/session'
 import { complementosPendientes, type ComplementoPendiente } from '@/lib/invoices/complementos'
@@ -30,7 +34,10 @@ function plazo(c: ComplementoPendiente): { texto: string; tono: 'danger' | 'warn
   return { texto: fecha(c.limite), tono: undefined }
 }
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; f?: string; p?: string }> }) {
+  const { q = '', f, p } = await searchParams
+  const termino = q.trim()
+  const filtro = f === 'vencidos' || f === 'vigentes' ? f : 'todos'
   const session = await getSession()
   if (!session) {
     return (
@@ -54,91 +61,50 @@ export default async function Page() {
 
   const vencidos = pendientes.filter((c) => (c.diasRestantes ?? 1) < 0).length
 
+  const visibles = pendientes.filter((c) => {
+    const coincide = !termino || [c.folio, c.uuid, c.total].some((v) => v?.toLocaleLowerCase().includes(termino.toLocaleLowerCase()))
+    return coincide && (filtro === 'todos' || (filtro === 'vencidos' ? (c.diasRestantes ?? 1) < 0 : c.diasRestantes !== null && c.diasRestantes >= 0))
+  })
+  const filtros = { q: termino || undefined, f: filtro === 'todos' ? undefined : filtro }
+
   return (
     <>
-      <div className="cr-page-head">
-        <div>
-          <h1>Complementos de pago</h1>
-          <p className="cr-lead cr-flush">
-            {pendientes.length === 0
-              ? 'No debes ninguno'
-              : `${pendientes.length} pendiente${pendientes.length === 1 ? '' : 's'}`}
-          </p>
-        </div>
+      <div className="cr-page-head cr-page-head--listado">
+        <div><h1>Complementos de pago</h1><p className="cr-lead cr-flush">Carga de XML para facturas PPD pagadas</p></div>
       </div>
-
-      {error && (
-        <div className="cr-info" data-tone="danger">
-          <span className="cr-info__label">No se pudo leer la base del portal</span>
-          <p>{error}</p>
-        </div>
-      )}
-
-      {vencidos > 0 && (
-        <div className="cr-info" data-tone="danger">
-          <span className="cr-info__label">
-            {vencidos === 1 ? 'Un complemento vencido' : `${vencidos} complementos vencidos`}
-          </span>
-          <p>El SAT multa cada comprobante fuera de plazo. Emitelo y subelo cuanto antes.</p>
-        </div>
-      )}
-
-      <section className="cr-section">
-        {pendientes.length === 0 ? (
-          <div className="cr-empty">
-            <div className="cr-empty__title">Estas al dia.</div>
-            <p>Aqui apareceran tus facturas PPD en cuanto KPS marque el pago.</p>
+      {error ? <><AvisoToast mensaje={error} /><div className="cr-empty"><p>No se pudieron consultar los complementos. Intenta recargar la página.</p></div></> : (
+        <section className="cr-panel cr-listado cr-complementos" aria-label="Complementos pendientes">
+          <div className="cr-panel__head">
+            <div><h2 className="cr-panel__title">Pendientes de complemento</h2><p className="cr-panel__sub">{pendientes.length} {pendientes.length === 1 ? 'pendiente' : 'pendientes'}{vencidos > 0 ? ` \u00b7 ${vencidos} ${vencidos === 1 ? 'vencido' : 'vencidos'}` : ''}</p></div>
+            <div className="cr-panel__controles">
+              <Buscador base="/complementos" termino={termino} filtros={filtros} placeholder="Factura, UUID o importe" etiqueta="Buscar complementos" />
+              <nav className="cr-segment" aria-label="Filtrar por plazo">
+                {([['todos', 'Todos'], ['vencidos', 'Vencidos'], ['vigentes', 'En plazo']] as const).map(([valor, etiqueta]) => {
+                  const params = new URLSearchParams()
+                  if (termino) params.set('q', termino)
+                  if (valor !== 'todos') params.set('f', valor)
+                  return <Link key={valor} href={`/complementos${params.size ? '?' + params : ''}`} scroll={false} className="cr-segment__item" data-active={filtro === valor ? 'true' : undefined} aria-current={filtro === valor ? 'page' : undefined}>{etiqueta}</Link>
+                })}
+              </nav>
+            </div>
           </div>
-        ) : (
-          <table className="cr-table cr-table--stack">
-            <thead>
-              <tr>
-                <th>Factura</th>
-                <th className="cr-num">Total</th>
-                <th className="cr-num">Pagada</th>
-                <th>Fecha limite</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {pendientes.map((c) => {
-                const p = plazo(c)
-                return (
-                  <tr key={c.folio}>
-                    <td className="cr-code" data-label="Factura">
-                      {c.folio}
-                    </td>
-                    <td className="cr-num" data-label="Total">
-                      {c.total}
-                    </td>
-                    <td className="cr-num" data-label="Pagada">
-                      {fecha(c.pagadaEl)}
-                    </td>
-                    <td data-label="Fecha limite">
-                      <span className="cr-status" data-tone={p.tono}>
-                        {p.texto}
-                      </span>
-                    </td>
-                    <td>
-                      <Subir folio={c.folio} />
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      <section className="cr-section">
-        <div className="cr-info">
-          <span className="cr-info__label">El plazo lo fija el SAT</span>
-          <p>
-            El complemento vence el dia 5 del mes siguiente al pago. Solo lo llevan las facturas PPD:
-            las PUE se cobran al emitirse y nunca aparecen aqui.
-          </p>
-        </div>
-      </section>
+          {visibles.length === 0 ? <div className="cr-empty cr-empty--compacto"><div className="cr-empty__title">{pendientes.length === 0 ? 'Sin complementos pendientes' : 'Sin resultados'}</div><p>{pendientes.length === 0 ? 'Aquí aparecerán las facturas PPD cuando se registre su pago.' : 'Prueba con otra búsqueda o cambia el filtro de plazo.'}</p></div> : (
+            <TablaAdaptable base="/complementos" unidad="complementos" pagina={p} filtros={filtros} reservaInferior={48}
+              className="cr-table cr-table--stack cr-listado__tabla cr-complementos__tabla"
+              cabecera={<thead><tr><th>Factura</th><th className="cr-num">Total</th><th>Pagada</th><th>Fecha límite</th><th className="cr-num">Acción</th></tr></thead>}
+              filas={visibles.map((c) => { const limite = plazo(c); return (
+                <tr key={c.folio}>
+                  <td className="cr-code" data-label="Factura" title={c.folio}>{c.folio}</td>
+                  <td className="cr-num" data-label="Total">{c.total}</td>
+                  <td className="cr-code" data-label="Pagada">{fecha(c.pagadaEl)}</td>
+                  <td data-label="Fecha límite"><span className="cr-badge" data-tone={limite.tono}>{limite.texto}</span></td>
+                  <td className="cr-complementos__accion" data-label="Acción"><Subir folio={c.folio} /></td>
+                </tr>
+              )})} />
+          )}
+        </section>
+      )}
+      <p className="cr-complementos__nota">El complemento vence el día 5 del mes siguiente al pago. Solo aplica a facturas PPD.</p>
     </>
   )
 }
