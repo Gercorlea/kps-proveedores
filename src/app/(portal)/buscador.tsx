@@ -34,6 +34,7 @@ export function Buscador({
   filtros,
   placeholder,
   etiqueta,
+  parametro = 'q',
 }: {
   /** Ruta del listado: "/ordenes", "/facturas". */
   base: string
@@ -50,6 +51,7 @@ export function Buscador({
    * leen los lectores de pantalla.
    */
   etiqueta: string
+  parametro?: string
 }) {
   const router = useRouter()
   const [valor, setValor] = useState(termino)
@@ -86,7 +88,7 @@ export function Buscador({
     for (const [k, v] of Object.entries(filtros ?? {})) {
       if (v !== undefined && v !== '') params.set(k, v)
     }
-    if (q) params.set('q', q)
+    if (q) params.set(parametro, q)
     const qs = params.toString()
     // Sin `p`: un termino nuevo empieza en la pagina 1. Sin `sel`: lo que
     // estuviera abierto puede no estar entre lo que queda, y una ficha de algo
@@ -101,7 +103,7 @@ export function Buscador({
     const t = setTimeout(() => ir(valor), 350)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [valor, base, claveFiltros])
+  }, [valor, base, claveFiltros, parametro])
 
   return (
     <form
@@ -116,13 +118,13 @@ export function Buscador({
       {/* La etiqueta va oculta a la vista: encima de la caja hacia el bloque mas
           alto que los chips y descuadraba la fila. El marcador de posicion no la
           sustituye —desaparece al escribir—, asi que se dice aqui. */}
-      <label className="cr-sr-only" htmlFor="q">
+      <label className="cr-sr-only" htmlFor={parametro}>
         {etiqueta}
       </label>
       <div className="cr-search" data-pendiente={pendiente ? 'true' : undefined}>
         <input
-          id="q"
-          name="q"
+          id={parametro}
+          name={parametro}
           type="text"
           className="cr-search__input"
           value={valor}
