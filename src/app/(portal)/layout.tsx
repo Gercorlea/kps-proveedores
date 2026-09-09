@@ -66,7 +66,7 @@ function navegacion(session: SessionPayload | null, proveedor: ProveedorActual |
   const veOrdenes =
     (interno && (tiene('KPS_COMPRAS') || tiene('ADMIN_SISTEMA'))) ||
     proveedor?.tipo === SupplierType.MERCANCIA
-  if (veOrdenes) operacion.push({ href: '/ordenes', label: 'Ordenes de compra' })
+  if (veOrdenes) operacion.push({ href: '/ordenes', label: 'Órdenes de compra' })
 
   // Quien da por recibida la mercancia es almacen: un proveedor firmando su
   // propia entrega se acreditaria lo que todavia no ha entregado. Por eso el
@@ -95,7 +95,7 @@ function navegacion(session: SessionPayload | null, proveedor: ProveedorActual |
   // Peticiones, Proveedores y Usuarios viven en kps-dashboard, que es el que
   // tiene la conexion con SAP y la administracion. Aqui no quedan.
   return [
-    { label: 'Operacion', items: operacion },
+    { label: 'Operación', items: operacion },
     {
       label: 'Documentos',
       items: [
@@ -166,7 +166,7 @@ export default async function PortalLayout({ children }: { children: React.React
           {proveedor ? (
             <>
               <span
-                className="cr-pill"
+                className="cr-topbar__empresa"
                 title={
                   (proveedor.tipo === 'SERVICIO'
                     ? 'Proveedor de servicios · Facturas sin orden de compra, con evidencia del servicio prestado.'
@@ -180,9 +180,9 @@ export default async function PortalLayout({ children }: { children: React.React
               <span className="cr-brand__context cr-mono">{session?.supplierCode}</span>
             </>
           ) : (
-            <span className="cr-pill">
-              <span className="cr-dot" />
-              KPS
+            <span className="cr-topbar__empresa">
+              <span className="cr-topbar__etiqueta">Portal de proveedores</span>
+              <span className="cr-topbar__organizacion">KPS</span>
             </span>
           )}
         </div>
@@ -196,15 +196,17 @@ export default async function PortalLayout({ children }: { children: React.React
 
           {session && (
             <div className="pf-user">
+              <Link href="/mi-informacion" className="pf-user__cuenta" aria-label="Ver mi perfil">
               <div className="pf-user__name" title={session.email}>
                 {session.name}
               </div>
-              <div className="pf-user__meta">{session.supplierCode ?? session.email}</div>
+              <div className="pf-user__meta" title={session.supplierCode ?? session.email}>{session.supplierCode ?? session.email}</div>
+              </Link>
               {/* Sigue siendo <a> y no <Link>: es un endpoint de la API que
                   borra la cookie y redirige, no una ruta del portal. */}
               <a href="/api/v1/auth/logout" className="cr-nav__item pf-salir">
                 <LogOut className="cr-nav__icon" />
-                <span className="cr-nav__text">Cerrar sesion</span>
+                <span className="cr-nav__text">Cerrar sesión</span>
               </a>
             </div>
           )}

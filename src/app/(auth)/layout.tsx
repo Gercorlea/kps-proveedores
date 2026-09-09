@@ -39,31 +39,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {children}
       </div>
 
-      <style>{`
-        .au-canvas {
-          display: flex;
-          min-height: 100dvh;
-          align-items: center;
-          justify-content: center;
-          padding: var(--cr-s4);
-          background: var(--cr-bg);
-        }
-        /* 448px, como el max-w-md de la referencia. A 384px los dos campos y el
-           boton quedaban apretados contra los bordes de la tarjeta. */
-        .au-card {
-          width: 100%;
-          max-width: 448px;
-          padding: var(--cr-s8);
-        }
-        .au-logo {
-          display: block;
-          width: 100%;
-          max-width: 240px;
-          height: auto;
-          margin: 0 auto var(--cr-s4);
-        }
-        .au-eyebrow { text-align: center; margin-bottom: var(--cr-s1); }
-      `}</style>
+
     </div>
   )
 }
