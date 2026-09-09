@@ -2334,3 +2334,76 @@ a.cr-chip-ico:hover { background: var(--cr-ink); color: var(--cr-on-accent); }
 .cr-orden-modal__contenido .cr-section > p { margin: 12px 0; }
 .cr-orden-modal__contenido > .cr-info { margin: 12px 20px; }
 .cr-orden-modal__head .cr-btn:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 2px; box-shadow: none; }
+
+.cr-complementos .cr-panel__sub { margin: 4px 0 0; color: var(--cr-ink-3); font-size: 12px; }
+.cr-complementos__tabla th:nth-child(2) { width: 22%; }
+.cr-complementos__tabla th:nth-child(3) { width: 15%; }
+.cr-complementos__tabla th:nth-child(4) { width: 23%; }
+.cr-complementos__tabla th:last-child { width: 150px; }
+.cr-complementos__tabla .cr-complementos__accion { text-align: right; overflow: visible; white-space: normal; }
+.cr-complementos__error { margin-top: 6px; color: var(--cr-danger); font-size: 12px; text-align: left; overflow-wrap: anywhere; }
+.cr-complementos__nota { margin: 14px 0 0; color: var(--cr-ink-3); font-size: 12px; }
+
+.cr-toast-zona {
+  position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+  width: min(400px, calc(100vw - 32px));
+  pointer-events: none;   /* la zona no bloquea; cada toast si recibe clics */
+}
+.cr-toast {
+  pointer-events: auto;
+  position: relative; overflow: hidden;   /* la barra se recorta al radio */
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px;
+  background: var(--cr-bg);
+  border: 1px solid var(--cr-line-2);
+  border-radius: var(--cr-r-sm, 3px);
+  box-shadow: var(--cr-shadow-2, 0 8px 28px rgb(0 0 0 / 12%));
+  animation: cr-toast-entra .16s cubic-bezier(.2,.6,.2,1) both;
+}
+
+/* Barra de tiempo: se va llenando y, cuando llega al final, el toast se va.
+   La duracion la fija el componente con `animation-duration` en linea, atada a
+   la MISMA constante que el temporizador que lo cierra: si se declarara aqui,
+   los dos numeros derivarian y la barra mentiria. */
+.cr-toast__barra {
+  position: absolute; left: 0; bottom: 0; height: 2px;
+  background: var(--cr-ok);
+  animation: cr-toast-barra linear forwards;
+}
+.cr-toast--warn .cr-toast__barra { background: var(--cr-warn); }
+.cr-toast--danger .cr-toast__barra { background: var(--cr-danger); }
+@keyframes cr-toast-barra {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+@keyframes cr-toast-entra {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+/* Salida: se va hacia su esquina en vez de desaparecer de golpe. La duracion la
+   comparte con el temporizador que lo quita de la lista (SALIDA en Toast.tsx);
+   si se separan, el toast se borra del DOM antes de terminar de irse. */
+.cr-toast--saliendo { animation: cr-toast-sale .18s cubic-bezier(.4,0,1,1) forwards; }
+@keyframes cr-toast-sale {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateX(12px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cr-toast, .cr-toast--saliendo { animation: none; }
+}
+.cr-toast { width: 100%; }
+.cr-toast__cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cr-toast__titulo { font-size: 13px; font-weight: 600; color: var(--cr-ink); }
+/* El estado va en la TINTA del titulo, no en un punto ni rellenando la caja. */
+.cr-toast--danger .cr-toast__titulo { color: var(--cr-danger); }
+.cr-toast--warn .cr-toast__titulo { color: var(--cr-warn); }
+.cr-toast__detalle { font-size: 12.5px; line-height: 1.45; color: var(--cr-ink-2); }
+.cr-toast__cerrar {
+  flex: none; background: none; border: 0; padding: 2px; cursor: pointer;
+  color: var(--cr-ink-3); line-height: 0;
+}
+.cr-toast__cerrar:hover { color: var(--cr-ink); }
+.cr-toast__cerrar svg { width: 14px; height: 14px; }
+
+.cr-toast__titulo, .cr-toast__detalle { margin: 0; }

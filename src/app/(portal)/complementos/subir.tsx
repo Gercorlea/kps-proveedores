@@ -1,32 +1,37 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+import { mostrarToast } from '../toast'
+
 import { useRef, useState } from 'react'
 
 /** El boton de carga de una fila. Cliente porque sube un archivo y refresca. */
 export default function Subir({ folio }: { folio: string }) {
   const ref = useRef<HTMLInputElement>(null)
   const [subiendo, setSubiendo] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   async function subir(file: File) {
     setSubiendo(true)
-    setError(null)
+
     try {
       const body = new FormData()
       body.append('xml', file)
       const res = await fetch(`/api/v1/invoices/${folio}/complemento`, { method: 'POST', body })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.detail ?? 'No se pudo cargar el complemento.')
+        mostrarToast('No se pudo cargar el complemento', 'error', data.detail ?? 'Intenta nuevamente.')
         return
       }
       // Recarga del servidor: la fila desaparece de la lista porque la factura
       // pasa a CERRADA, y el estado local no puede saberlo por su cuenta.
-      window.location.reload()
+      mostrarToast('Complemento cargado correctamente.', 'success')
+      router.refresh()
     } catch {
-      setError('No se pudo contactar al servidor.')
+      mostrarToast('No se pudo cargar el complemento', 'error', 'No se pudo contactar al servidor.')
     } finally {
       setSubiendo(false)
+      if (ref.current) ref.current.value = ''
     }
   }
 
@@ -34,8 +39,7 @@ export default function Subir({ folio }: { folio: string }) {
     <>
       <button
         type="button"
-        className="cr-btn"
-        data-variant="secondary"
+        className="cr-btn cr-btn--primary cr-btn--sm"
         disabled={subiendo}
         onClick={() => ref.current?.click()}
       >
@@ -51,11 +55,7 @@ export default function Subir({ folio }: { folio: string }) {
           if (f) void subir(f)
         }}
       />
-      {error && (
-        <div className="cr-small cr-mt-2" data-tone="danger">
-          {error}
-        </div>
-      )}
+
     </>
   )
 }
