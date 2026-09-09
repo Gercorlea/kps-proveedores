@@ -54,7 +54,7 @@ export default function LoginPage() {
 
   return (
     <form onSubmit={enviar} className="lg-form">
-      <h1 className="cr-h1 lg-title">Iniciar sesión</h1>
+      <div className="lg-heading"><h1 className="cr-h1 lg-title">Iniciar sesión</h1><p>Accede para consultar tus documentos y dar seguimiento a tus facturas.</p></div>
 
       <div className="cr-field">
         <label className="cr-field__label" htmlFor="email">
@@ -91,7 +91,7 @@ export default function LoginPage() {
 
 
 
-      <button type="submit" className="cr-btn cr-btn--block cr-btn--lg" disabled={cargando}>
+      <button type="submit" className="cr-btn cr-btn--primary cr-btn--block" disabled={cargando}>
         {cargando ? 'Entrando...' : 'Iniciar sesión'}
       </button>
 
@@ -104,23 +104,7 @@ export default function LoginPage() {
         correo en cuanto se resuelva.
       </p>
 
-      <style>{`
-        .lg-form { display: flex; flex-direction: column; gap: var(--cr-s4); }
-        .lg-title { text-align: center; margin-bottom: var(--cr-s2); }
-        .lg-form .cr-field { margin-bottom: 0; }
-        /* El error usa la variante oscura del rojo: a 12px, el vivo no llega a
-           AA sobre blanco. */
-        .lg-error { color: var(--cr-danger-ink); margin: 0; }
-        .lg-link { text-align: center; color: var(--cr-ink-2); }
-        .lg-link:hover { color: var(--cr-ink); }
-        .lg-aviso {
-          margin: 0;
-          padding-top: var(--cr-s4);
-          border-top: 1px solid var(--cr-line);
-          color: var(--cr-ink-3);
-          text-align: center;
-        }
-      `}</style>
+
     </form>
   )
 }
