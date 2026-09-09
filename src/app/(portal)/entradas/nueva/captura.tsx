@@ -1,5 +1,7 @@
 'use client'
 
+import { mostrarToast } from '@/app/(portal)/toast'
+
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
@@ -72,7 +74,6 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
   const [lotes, setLotes] = useState<Record<number, LoteCapturado[]>>({})
   const [fecha, setFecha] = useState(hoy)
   const [comentario, setComentario] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [hecho, setHecho] = useState<{ docNum: number; lineas: number } | null>(null)
 
@@ -171,7 +172,6 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setEnviando(true)
     try {
       const res = await fetch('/api/v1/goods-receipts', {
@@ -202,16 +202,17 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.detail ?? 'No se pudo registrar la entrada.')
+        mostrarToast('No se pudo completar la acción', 'error', data.detail ?? 'No se pudo registrar la entrada.')
         setEnviando(false)
         return
       }
+      mostrarToast('Entrada registrada', 'success', `Documento ${data.docNum}`)
       setHecho({ docNum: data.docNum, lineas: data.lineas?.length ?? conCantidad.length })
       // Las pantallas de ordenes leen B1 en vivo: al refrescar, lo recibido ya
       // sale actualizado sin tocar nada mas.
       router.refresh()
     } catch {
-      setError('No se pudo contactar al servidor.')
+      mostrarToast('No se pudo completar la acción', 'error', 'No se pudo contactar al servidor.')
       setEnviando(false)
     }
   }
@@ -460,12 +461,7 @@ export default function Captura({ poDocEntry, docNum, cardCode, cardName, renglo
         </div>
       )}
 
-      {error && (
-        <div className="cr-info" data-tone="danger" role="alert">
-          <span className="cr-info__label">No se pudo registrar la entrada</span>
-          <p>{error}</p>
-        </div>
-      )}
+
 
       <div className="cr-btn-row">
         <button type="submit" className="cr-btn" disabled={!puedeEnviar}>

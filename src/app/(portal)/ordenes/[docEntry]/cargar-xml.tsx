@@ -1,5 +1,7 @@
 'use client'
 
+import { mostrarToast } from '../../toast'
+
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -252,6 +254,7 @@ export default function CargarXml({
       nuevas.push(ficha)
     }
 
+    for (const ficha of nuevas) { if (ficha.error) mostrarToast('No se pudo procesar el XML', 'error', ficha.error) }
     setFichas((f) => [...f, ...nuevas])
     setLeyendo(false)
     // Se limpia el input para poder volver a elegir el mismo archivo: sin esto
@@ -264,6 +267,9 @@ export default function CargarXml({
   }
 
   function marcar(id: string, cambios: Partial<Ficha>) {
+    if (cambios.errorAccion) mostrarToast('No se pudo completar la operación', 'error', cambios.errorAccion)
+    else if (cambios.enviada) mostrarToast('Factura enviada a revisión', 'success')
+    else if (cambios.folio) mostrarToast('Borrador guardado', 'success', cambios.folio)
     setFichas((prev) => prev.map((x) => (x.id === id ? { ...x, ...cambios } : x)))
   }
 
@@ -460,7 +466,7 @@ export default function CargarXml({
         <>
           {fichas.map((f) => {
             const bloq = bloqueantesDe(f)
-            const problema = f.error ?? f.errorAccion ?? bloq[0]?.detalle
+            const problema = bloq[0]?.detalle
             return (
               <div key={f.id} className="cr-file cf-file" data-mal={problema ? 'si' : undefined}>
                 <span className="cf-file__icono" aria-hidden="true">

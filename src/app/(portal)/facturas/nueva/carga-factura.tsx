@@ -1,5 +1,7 @@
 'use client'
 
+import { mostrarToast } from '@/app/(portal)/toast'
+
 import { useCallback, useRef, useState } from 'react'
 
 /**
@@ -91,12 +93,10 @@ export default function CargaFactura({
   const [descripcion, setDescripcion] = useState('')
 
   const [extraido, setExtraido] = useState<Extraido | null>(null)
-  const [errorXml, setErrorXml] = useState<string | null>(null)
   const [procesando, setProcesando] = useState(false)
 
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState<{ folio: string } | null>(null)
-  const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const [rechazos, setRechazos] = useState<Validacion[]>([])
 
   const xmlRef = useRef<HTMLInputElement>(null)
@@ -105,7 +105,6 @@ export default function CargaFactura({
 
   const procesarXml = useCallback(async (file: File) => {
     setProcesando(true)
-    setErrorXml(null)
     setExtraido(null)
     try {
       const body = new FormData()
@@ -113,14 +112,14 @@ export default function CargaFactura({
       const res = await fetch('/api/v1/cfdi/parse', { method: 'POST', body })
       const data = await res.json()
       if (!res.ok) {
-        setErrorXml(data.detail ?? 'No se pudo leer el XML.')
+        mostrarToast('No se pudo completar la acción', 'error', data.detail ?? 'No se pudo leer el XML.')
         setXml(null)
         return
       }
       setExtraido(data as Extraido)
       setXml(file)
     } catch {
-      setErrorXml('No se pudo contactar al servidor para procesar el XML.')
+      mostrarToast('No se pudo completar la acción', 'error', 'No se pudo contactar al servidor para procesar el XML.')
       setXml(null)
     } finally {
       setProcesando(false)
@@ -135,7 +134,6 @@ export default function CargaFactura({
   const enviar = useCallback(async () => {
     if (!xml || !pdf || !evidencia) return
     setEnviando(true)
-    setErrorEnvio(null)
     setRechazos([])
     try {
       const body = new FormData()
@@ -152,13 +150,14 @@ export default function CargaFactura({
         validaciones?: Validacion[]
       }
       if (!res.ok) {
-        setErrorEnvio(data.detail ?? 'No se pudo enviar la factura.')
+        mostrarToast('No se pudo completar la acción', 'error', data.detail ?? 'No se pudo enviar la factura.')
         setRechazos(data.validaciones ?? [])
         return
       }
+      mostrarToast('Factura enviada a revision', 'success')
       setEnviado({ folio: data.folio! })
     } catch {
-      setErrorEnvio('No se pudo contactar al servidor para enviar la factura.')
+      mostrarToast('No se pudo completar la acción', 'error', 'No se pudo contactar al servidor para enviar la factura.')
     } finally {
       setEnviando(false)
     }
@@ -214,7 +213,7 @@ export default function CargaFactura({
       <section className="cr-section">
         <span className="cr-label">Paso 01 · Tu factura</span>
 
-        <div className="cr-drop" data-invalid={errorXml ? 'true' : undefined}>
+        <div className="cr-drop">
           <p className="cr-drop__title">Sube el XML y el PDF</p>
           <p className="cr-small cr-drop__hint">
             Los dos archivos son obligatorios
@@ -257,12 +256,7 @@ export default function CargaFactura({
           />
         </div>
 
-        {errorXml && (
-          <div className="cr-info cr-mt-3" data-tone="danger">
-            <span className="cr-info__label">El XML no se pudo procesar</span>
-            <p>{errorXml}</p>
-          </div>
-        )}
+
 
         <div className="cr-mt-3">
           {xml && (
@@ -493,10 +487,10 @@ export default function CargaFactura({
       <section className="cr-section">
         <span className="cr-label">Paso 03 · Envio</span>
 
-        {errorEnvio && (
+        {rechazos.length > 0 && (
           <div className="cr-info" data-tone="danger">
             <span className="cr-info__label">No se envio la factura</span>
-            <p>{errorEnvio}</p>
+
             {rechazos.map((v) => (
               <p key={v.regla} className="cr-small">
                 {v.regla.replace(/_/g, ' ')} · {v.detalle}
@@ -505,15 +499,7 @@ export default function CargaFactura({
           </div>
         )}
 
-        {enviado && (
-          <div className="cr-info" data-tone="ok">
-            <span className="cr-info__label">Factura enviada a revision</span>
-            <p>
-              Folio <span className="cr-mono">{enviado.folio}</span>. KPS te avisara si necesita una
-              correccion.
-            </p>
-          </div>
-        )}
+
 
         <div className="cr-btn-row">
           <button

@@ -12,8 +12,8 @@ export function mostrarToast(mensaje: string, tono: Aviso['tono'] = 'info', deta
   window.dispatchEvent(new CustomEvent(evento, { detail: { mensaje, detalle, tono, id: siguienteId++ } }))
 }
 
-export function AvisoToast({ mensaje }: { mensaje: string }) {
-  useEffect(() => { mostrarToast('No se pudo completar la consulta', 'error', mensaje) }, [mensaje])
+export function AvisoToast({ mensaje, titulo = 'No se pudo completar la acción', tono = 'error' }: { mensaje: string; titulo?: string; tono?: Aviso['tono'] }) {
+  useEffect(() => { mostrarToast(titulo, tono, mensaje) }, [mensaje, titulo, tono])
   return null
 }
 

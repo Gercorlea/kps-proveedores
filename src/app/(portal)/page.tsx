@@ -1,3 +1,4 @@
+import { AvisoToast } from '@/app/(portal)/toast'
 import Link from 'next/link'
 import { getSession } from '@/lib/auth/server'
 import { esInterno } from '@/lib/auth/session'
@@ -135,7 +136,7 @@ export default async function Page() {
       {error && (
         <div className="cr-info" data-tone="danger">
           <span className="cr-info__label">No se pudo leer la base del portal</span>
-          <p>{error}</p>
+          <AvisoToast mensaje={error} />
         </div>
       )}
 

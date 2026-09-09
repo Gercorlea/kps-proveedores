@@ -1,5 +1,7 @@
 'use client'
 
+import { mostrarToast } from '@/app/(portal)/toast'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -18,12 +20,10 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setCargando(true)
     try {
       const res = await fetch('/api/v1/auth/login', {
@@ -33,7 +33,7 @@ export default function LoginPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error ?? 'No se pudo iniciar sesion')
+        mostrarToast('No se pudo completar la acción', 'error', data.error ?? 'No se pudo iniciar sesion')
         setCargando(false)
         return
       }
@@ -47,7 +47,7 @@ export default function LoginPage() {
       router.push(siguiente && siguiente.startsWith('/') ? siguiente : '/')
       router.refresh()
     } catch {
-      setError('No se pudo contactar al servidor')
+      mostrarToast('No se pudo completar la acción', 'error', 'No se pudo contactar al servidor')
       setCargando(false)
     }
   }
@@ -89,11 +89,7 @@ export default function LoginPage() {
         />
       </div>
 
-      {error ? (
-        <p className="cr-small lg-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+
 
       <button type="submit" className="cr-btn cr-btn--block cr-btn--lg" disabled={cargando}>
         {cargando ? 'Entrando...' : 'Iniciar sesión'}

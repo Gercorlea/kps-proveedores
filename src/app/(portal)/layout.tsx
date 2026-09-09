@@ -1,4 +1,3 @@
-import Toast from './toast'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
@@ -139,7 +138,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="cr-shell">
-      <Toast />
+
       <header className="cr-topbar">
         {/* La marca ocupa una columna del ancho del sidebar: su borde derecho y
             el del sidebar son la misma linea vertical. Ver §04 de cronos.css.
